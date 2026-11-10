@@ -3,127 +3,145 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#080a14" />
-  <meta name="description" content="SYNC — смотри видео вместе с друзьями." />
-  <title>SYNC — смотрите вместе</title>
+  <meta name="theme-color" content="#0c0d12" />
+  <meta name="description" content="SYNC — смотрите вместе с друзьями." />
+  <title>SYNC — смотреть вместе</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="ambient ambient-a"></div>
-  <div class="ambient ambient-b"></div>
-
   <header class="topbar">
     <a class="brand" href="#home" aria-label="SYNC — главная">
-      <span class="brand-mark"><span></span><span></span><span></span></span>
-      <span>SYNC</span>
+      <span class="brand-icon"><i></i><i></i><i></i></span>
+      <span>sync</span>
     </a>
-    <nav class="topnav" aria-label="Главная навигация">
-      <a class="active" href="#watch">Комната</a>
-      <a href="#platforms">Платформы</a>
-      <a href="#about">О проекте</a>
+    <nav class="main-nav" aria-label="Навигация">
+      <a class="nav-link active" href="#watch">Смотреть</a>
+      <a class="nav-link" href="#friends">Друзья</a>
     </nav>
     <div class="top-actions">
-      <span class="connection"><i></i> Демо-режим</span>
-      <button class="avatar" id="profileButton" title="Профиль">Г</button>
+      <button class="button button-soft button-invite" id="inviteTop"><span class="button-icon">↗</span> Пригласить</button>
+      <button class="profile-avatar" id="profileButton" aria-label="Изменить профиль" title="Профиль">Г</button>
     </div>
   </header>
 
-  <main id="home" class="layout">
-    <section class="workspace" id="watch">
-      <div class="welcome-row">
+  <main id="home" class="app-layout">
+    <section class="main-column" id="watch">
+      <div class="page-heading">
         <div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> YOUR PRIVATE CINEMA</div>
-          <h1>Смотрите вместе.<br><span>Будьте ближе.</span></h1>
-          <p class="subtitle">Одна комната, одно видео и ваши люди — где бы они ни были.</p>
+          <div class="overline"><span class="live-indicator"></span> ЛИЧНАЯ КОМНАТА</div>
+          <h1>Смотрим вместе</h1>
         </div>
-        <div class="room-card">
-          <div class="room-card-top"><span class="live-dot"></span> ВАША КОМНАТА</div>
-          <div class="room-code-line"><strong id="roomCode">SYNC-4821</strong><button class="icon-button" id="copyRoom" aria-label="Скопировать код" title="Скопировать код">▢</button></div>
-          <div class="room-card-bottom"><span id="roomStatus">Вы — организатор</span><button class="text-button" id="changeRoom">Войти по коду</button></div>
-        </div>
+        <button class="button button-quiet" id="newRoom">＋ Новая комната</button>
       </div>
 
-      <div class="player-shell">
-        <div class="player-topline">
-          <div class="player-label"><span class="screen-icon">▣</span> <span id="playerHeading">КИНОЗАЛ SYNC</span></div>
-          <div class="player-top-actions"><span class="secure-label"><span>✦</span> Приватная комната</span><button class="icon-button" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button></div>
-        </div>
-        <div class="player-stage" id="playerStage">
-          <div class="stage-grid"></div>
-          <div class="stage-content" id="stagePlaceholder">
-            <div class="play-orb"><span>▶</span></div>
-            <div class="stage-kicker">YOUR MOVIE NIGHT STARTS HERE</div>
-            <h2>Что будем<br><span>смотреть сегодня?</span></h2>
-            <p>Выберите платформу и вставьте ссылку на видео</p>
-            <button class="primary-button" id="chooseVideo">Выбрать видео <span>↗</span></button>
+      <section class="watch-card" aria-label="Видеоплеер">
+        <div class="video-stage" id="playerStage">
+          <div class="stage-glow"></div>
+          <div class="stage-empty" id="stagePlaceholder">
+            <div class="stage-symbol"><span>▶</span></div>
+            <p>Ваш следующий совместный просмотр</p>
+            <button class="button button-primary" id="findFromPlayer">Найти видео <span>↗</span></button>
           </div>
           <div class="embed-wrap hidden" id="embedWrap"></div>
-          <div class="stage-notice" id="stageNotice" role="status">Плеер появится здесь после подключения ссылки</div>
+          <div class="player-error hidden" id="playerError"></div>
+          <button class="fullscreen-control" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button>
         </div>
-        <div class="player-footer">
-          <div class="now-playing"><div class="cover-mini">S</div><div><strong id="videoTitle">Ничего не играет</strong><span id="videoSource">Добавьте видео, чтобы начать</span></div></div>
-          <div class="sync-state"><span class="sync-pulse"></span><span id="syncLabel">Ожидаем видео</span></div>
-          <button class="share-button" id="shareButton">Пригласить <span>↗</span></button>
-        </div>
-      </div>
-
-      <section class="platform-section" id="platforms">
-        <div class="section-heading"><div><div class="eyebrow">SUPPORTED PLATFORMS</div><h2>Выберите площадку</h2></div><span class="muted-small">Больше сервисов — позже</span></div>
-        <div class="platform-grid">
-          <button class="platform-tile selected" data-provider="youtube"><span class="platform-logo youtube-logo">▶</span><span><strong>YouTube</strong><small>Встроенный плеер</small></span><span class="tile-arrow">↗</span></button>
-          <button class="platform-tile" data-provider="rutube"><span class="platform-logo rutube-logo">▶</span><span><strong>Rutube</strong><small>Встроенный плеер</small></span><span class="tile-arrow">↗</span></button>
-          <button class="platform-tile" data-provider="vk"><span class="platform-logo vk-logo">ᴠκ</span><span><strong>VK Видео</strong><small>Ссылка на видео</small></span><span class="tile-arrow">↗</span></button>
-          <button class="platform-tile" data-provider="netflix"><span class="platform-logo netflix-logo">N</span><span><strong>Netflix</strong><small>Внешний просмотр</small></span><span class="tile-arrow">↗</span></button>
-          <button class="platform-tile" data-provider="kinopoisk"><span class="platform-logo kp-logo">К</span><span><strong>Кинопоиск</strong><small>Внешний просмотр</small></span><span class="tile-arrow">↗</span></button>
-          <button class="platform-tile" data-provider="other"><span class="platform-logo more-logo">＋</span><span><strong>Другие</strong><small>Вставить ссылку</small></span><span class="tile-arrow">↗</span></button>
+        <div class="watch-meta">
+          <div class="now-playing">
+            <div class="mini-cover" id="videoCover">S</div>
+            <div class="now-copy">
+              <span class="meta-label">СЕЙЧАС СМОТРИМ</span>
+              <strong id="videoTitle">Пока ничего</strong>
+              <span id="videoSource">Выберите видео, чтобы начать</span>
+            </div>
+          </div>
+          <div class="sync-status"><span class="sync-dot"></span><span id="syncLabel">Комната готова</span></div>
         </div>
       </section>
 
-      <section class="link-panel" id="linkPanel">
-        <div class="link-panel-title"><div class="link-icon">↗</div><div><strong id="linkTitle">Подключить YouTube</strong><span id="linkDescription">Вставьте ссылку на ролик или трансляцию</span></div></div>
-        <form id="videoForm" class="link-form">
-          <label class="sr-only" for="videoUrl">Ссылка на видео</label>
-          <input id="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url" />
-          <button class="primary-button" type="submit">Подключить <span>→</span></button>
+      <section class="discover-section" id="discover">
+        <div class="section-topline">
+          <div>
+            <span class="overline">КАТАЛОГ</span>
+            <h2>Что посмотрим?</h2>
+          </div>
+          <span class="section-note" id="searchHint">Поиск по площадкам</span>
+        </div>
+        <form class="search-bar" id="searchForm">
+          <span class="search-icon">⌕</span>
+          <input id="searchInput" type="search" placeholder="Название фильма, сериала или видео" autocomplete="off" maxlength="100" />
+          <button class="button button-primary search-submit" type="submit">Найти</button>
         </form>
-        <p class="form-hint" id="formHint">Для YouTube и Rutube попробуем открыть официальный встроенный плеер.</p>
+        <div class="provider-row" id="providerRow" aria-label="Выберите площадку">
+          <button class="provider-chip selected" data-provider="youtube"><span class="provider-dot youtube-dot"></span>YouTube</button>
+          <button class="provider-chip" data-provider="rutube"><span class="provider-dot rutube-dot"></span>Rutube</button>
+          <button class="provider-chip" data-provider="vk"><span class="provider-dot vk-dot"></span>VK Видео</button>
+          <button class="provider-chip" data-provider="netflix"><span class="provider-dot netflix-dot"></span>Netflix</button>
+          <button class="provider-chip" data-provider="kinopoisk"><span class="provider-dot kp-dot"></span>Кинопоиск</button>
+        </div>
+        <div class="search-results hidden" id="searchResults" aria-live="polite"></div>
       </section>
     </section>
 
-    <aside class="sidebar">
-      <div class="side-heading"><div><div class="eyebrow">THE HANGOUT</div><h2>Комната</h2></div><button class="dots-button" id="roomMenu" aria-label="Меню комнаты">•••</button></div>
-      <div class="people-card">
-        <div class="people-header"><strong>Участники</strong><span class="people-count" id="peopleCount">1 / 8</span></div>
-        <div class="people-list" id="peopleList"><div class="person"><div class="person-avatar you">Г</div><div class="person-name"><strong>Вы</strong><span>Организатор</span></div><span class="mic-status">♬</span></div></div>
-        <button class="invite-wide" id="inviteWide"><span>＋</span> Пригласить друзей</button>
-      </div>
-      <div class="chat-card">
-        <div class="chat-header"><div><strong>Общий чат</strong><span>Общайтесь во время просмотра</span></div><span class="chat-online"><i></i> онлайн</span></div>
-        <div class="chat-messages" id="chatMessages">
-          <div class="system-message">Добро пожаловать в SYNC! Отправьте друзьям код комнаты.</div>
+    <aside class="side-column">
+      <section class="side-card room-people-card">
+        <div class="card-heading">
+          <div><span class="overline">СЕАНС</span><h2>В комнате</h2></div>
+          <button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей">＋</button>
         </div>
-        <form class="chat-form" id="chatForm"><input id="chatInput" maxlength="240" placeholder="Написать сообщение..." autocomplete="off" /><button type="submit" aria-label="Отправить сообщение">↑</button></form>
-        <div class="chat-footnote">Сообщения видны участникам этой демо-комнаты в текущем браузере</div>
-      </div>
-      <div class="tip-card" id="about"><span class="tip-spark">✦</span><div><strong>Вечер начинается здесь</strong><p>Соберите друзей, выберите фильм и создайте свои общие воспоминания.</p></div></div>
+        <div class="people-list" id="peopleList">
+          <div class="person-row"><div class="person-avatar self-avatar">Г</div><div class="person-info"><strong>Вы</strong><span>Организатор</span></div><span class="person-presence"></span></div>
+        </div>
+        <div class="people-bottom"><span id="peopleCount">1 участник</span><button class="text-action" id="shareRoom">Ссылка-приглашение ↗</button></div>
+      </section>
+
+      <section class="side-card friends-card" id="friends">
+        <div class="card-heading">
+          <div><span class="overline">ВАШ КРУГ</span><h2>Друзья</h2></div>
+          <button class="round-button" id="addFriend" title="Добавить друга" aria-label="Добавить друга">＋</button>
+        </div>
+        <div class="friends-list" id="friendsList">
+          <div class="empty-friends" id="emptyFriends"><span class="empty-friends-icon">✳</span><span>Пока здесь тихо</span></div>
+        </div>
+      </section>
+
+      <section class="side-card chat-card">
+        <div class="card-heading chat-heading">
+          <div><span class="overline">НА СВЯЗИ</span><h2>Чат</h2></div>
+          <span class="chat-live"><i></i> онлайн</span>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-welcome">Позови друзей — и общайтесь здесь во время фильма.</div>
+        </div>
+        <form class="chat-form" id="chatForm">
+          <input id="chatInput" type="text" placeholder="Сообщение..." maxlength="240" autocomplete="off" />
+          <button type="submit" aria-label="Отправить">↑</button>
+        </form>
+      </section>
     </aside>
   </main>
 
-  <footer class="footer"><span class="brand-mini">SYNC<span>•</span></span><span>Вместе — лучше, чем поодиночке.</span><span>Prototype 0.1</span></footer>
-
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <div class="modal-backdrop hidden" id="roomModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <button class="modal-close" id="closeModal" aria-label="Закрыть">×</button>
-      <div class="modal-symbol">⌘</div><div class="eyebrow">JOIN THE ROOM</div><h2 id="modalTitle">Войти в комнату</h2><p>Введи код, который отправил тебе друг.</p>
-      <form id="joinForm"><input id="joinCode" maxlength="12" placeholder="Например, SYNC-4821" autocomplete="off" /><button class="primary-button" type="submit">Войти в комнату <span>→</span></button></form>
-      <button class="secondary-button" id="createNewRoom">Или создать свою комнату</button>
+
+  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle">
+    <div class="modal-card">
+      <button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button>
+      <span class="modal-icon">✳</span>
+      <span class="overline">ВАШ КРУГ</span>
+      <h2 id="friendModalTitle">Добавить друга</h2>
+      <p>Сохрани имя друга, чтобы быстро приглашать его в просмотр.</p>
+      <form id="friendForm" class="modal-form">
+        <label for="friendName">Имя или ник</label>
+        <input id="friendName" type="text" placeholder="Например, Alex" maxlength="24" autocomplete="off" required />
+        <button class="button button-primary button-full" type="submit">Добавить друга</button>
+      </form>
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
