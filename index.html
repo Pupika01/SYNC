@@ -13,9 +13,8 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#home" aria-label="SYNC — главная">
-      <span class="brand-icon"><i></i><i></i><i></i></span>
-      <span>sync</span>
+    <a class="brand" href="#watch" aria-label="SYNC — главная">
+      <span class="brand-icon"><i></i><i></i><i></i></span><span>sync</span>
     </a>
     <nav class="main-nav" aria-label="Навигация">
       <a class="nav-link active" href="#watch">Смотреть</a>
@@ -23,17 +22,14 @@
     </nav>
     <div class="top-actions">
       <button class="button button-soft button-invite" id="inviteTop"><span class="button-icon">↗</span> Пригласить</button>
-      <button class="profile-avatar" id="profileButton" aria-label="Изменить профиль" title="Профиль">Г</button>
+      <button class="profile-avatar" id="profileButton" aria-label="Профиль" title="Профиль">?</button>
     </div>
   </header>
 
-  <main id="home" class="app-layout">
+  <main id="appContent" class="app-layout">
     <section class="main-column" id="watch">
       <div class="page-heading">
-        <div>
-          <div class="overline"><span class="live-indicator"></span> ЛИЧНАЯ КОМНАТА</div>
-          <h1>Смотрим вместе</h1>
-        </div>
+        <div><div class="overline"><span class="live-indicator"></span> ЛИЧНАЯ КОМНАТА</div><h1>Смотрим вместе</h1></div>
         <button class="button button-quiet" id="newRoom">＋ Новая комната</button>
       </div>
 
@@ -50,31 +46,14 @@
           <button class="fullscreen-control" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button>
         </div>
         <div class="watch-meta">
-          <div class="now-playing">
-            <div class="mini-cover" id="videoCover">S</div>
-            <div class="now-copy">
-              <span class="meta-label">СЕЙЧАС СМОТРИМ</span>
-              <strong id="videoTitle">Пока ничего</strong>
-              <span id="videoSource">Выберите видео, чтобы начать</span>
-            </div>
-          </div>
-          <div class="sync-status"><span class="sync-dot"></span><span id="syncLabel">Комната готова</span></div>
+          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">СЕЙЧАС СМОТРИМ</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Выберите видео, чтобы начать</span></div></div>
+          <div class="sync-status"><span class="sync-dot"></span><span id="syncLabel">Подключение…</span></div>
         </div>
       </section>
 
       <section class="discover-section" id="discover">
-        <div class="section-topline">
-          <div>
-            <span class="overline">КАТАЛОГ</span>
-            <h2>Что посмотрим?</h2>
-          </div>
-          <span class="section-note" id="searchHint">Поиск по площадкам</span>
-        </div>
-        <form class="search-bar" id="searchForm">
-          <span class="search-icon">⌕</span>
-          <input id="searchInput" type="search" placeholder="Название фильма, сериала или видео" autocomplete="off" maxlength="100" />
-          <button class="button button-primary search-submit" type="submit">Найти</button>
-        </form>
+        <div class="section-topline"><div><span class="overline">КАТАЛОГ</span><h2>Что посмотрим?</h2></div><span class="section-note" id="searchHint">Поиск по площадкам</span></div>
+        <form class="search-bar" id="searchForm"><span class="search-icon">⌕</span><input id="searchInput" type="search" placeholder="Название фильма, сериала или видео" autocomplete="off" maxlength="100" /><button class="button button-primary search-submit" type="submit">Найти</button></form>
         <div class="provider-row" id="providerRow" aria-label="Выберите площадку">
           <button class="provider-chip selected" data-provider="youtube"><span class="provider-dot youtube-dot"></span>YouTube</button>
           <button class="provider-chip" data-provider="rutube"><span class="provider-dot rutube-dot"></span>Rutube</button>
@@ -88,59 +67,70 @@
 
     <aside class="side-column">
       <section class="side-card room-people-card">
-        <div class="card-heading">
-          <div><span class="overline">СЕАНС</span><h2>В комнате</h2></div>
-          <button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей">＋</button>
-        </div>
-        <div class="people-list" id="peopleList">
-          <div class="person-row"><div class="person-avatar self-avatar">Г</div><div class="person-info"><strong>Вы</strong><span>Организатор</span></div><span class="person-presence"></span></div>
-        </div>
+        <div class="card-heading"><div><span class="overline">СЕАНС</span><h2>В комнате</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей">＋</button></div>
+        <div class="people-list" id="peopleList"><div class="person-row"><div class="person-avatar self-avatar">?</div><div class="person-info"><strong>Вы</strong><span>Организатор</span></div><span class="person-presence"></span></div></div>
         <div class="people-bottom"><span id="peopleCount">1 участник</span><button class="text-action" id="shareRoom">Ссылка-приглашение ↗</button></div>
       </section>
 
       <section class="side-card friends-card" id="friends">
-        <div class="card-heading">
-          <div><span class="overline">ВАШ КРУГ</span><h2>Друзья</h2></div>
-          <button class="round-button" id="addFriend" title="Добавить друга" aria-label="Добавить друга">＋</button>
-        </div>
-        <div class="friends-list" id="friendsList">
-          <div class="empty-friends" id="emptyFriends"><span class="empty-friends-icon">✳</span><span>Пока здесь тихо</span></div>
-        </div>
+        <div class="card-heading"><div><span class="overline">ВАШ КРУГ</span><h2>Друзья</h2></div><button class="round-button" id="addFriend" title="Найти друзей" aria-label="Найти друзей">＋</button></div>
+        <div class="friends-list" id="friendsList"><div class="empty-friends"><span class="empty-friends-icon">✳</span><span>Найди друзей по нику</span></div></div>
       </section>
 
       <section class="side-card chat-card">
-        <div class="card-heading chat-heading">
-          <div><span class="overline">НА СВЯЗИ</span><h2>Чат</h2></div>
-          <span class="chat-live"><i></i> онлайн</span>
-        </div>
-        <div class="chat-messages" id="chatMessages">
-          <div class="chat-welcome">Позови друзей — и общайтесь здесь во время фильма.</div>
-        </div>
-        <form class="chat-form" id="chatForm">
-          <input id="chatInput" type="text" placeholder="Сообщение..." maxlength="240" autocomplete="off" />
-          <button type="submit" aria-label="Отправить">↑</button>
-        </form>
+        <div class="card-heading chat-heading"><div><span class="overline">НА СВЯЗИ</span><h2>Чат</h2></div><span class="chat-live"><i></i> онлайн</span></div>
+        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Позови друзей — и общайтесь здесь во время фильма.</div></div>
+        <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
       </section>
     </aside>
   </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle">
-    <div class="modal-card">
-      <button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button>
-      <span class="modal-icon">✳</span>
-      <span class="overline">ВАШ КРУГ</span>
-      <h2 id="friendModalTitle">Добавить друга</h2>
-      <p>Сохрани имя друга, чтобы быстро приглашать его в просмотр.</p>
-      <form id="friendForm" class="modal-form">
-        <label for="friendName">Имя или ник</label>
-        <input id="friendName" type="text" placeholder="Например, Alex" maxlength="24" autocomplete="off" required />
-        <button class="button button-primary button-full" type="submit">Добавить друга</button>
-      </form>
+  <div class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <div class="auth-brand"><span class="brand-icon"><i></i><i></i><i></i></span><span>sync</span></div>
+      <div id="setupNotice" class="setup-notice hidden">
+        <div class="auth-mark">✳</div><h1>Подключи SYNC</h1>
+        <p>Остался один технический шаг: добавь URL проекта Supabase и публичный anon key в <code>config.js</code>, затем обнови страницу.</p>
+        <ol><li>Supabase → Project Settings → API.</li><li>Скопируй Project URL.</li><li>Скопируй ключ <b>anon / publishable</b>, не service_role.</li></ol>
+        <p class="auth-small">После этого здесь появится вход и регистрация. Не отправляй никому секретные ключи.</p>
+      </div>
+      <div id="authPanel" class="hidden">
+        <div class="auth-mark">✳</div><h1 id="authTitle">С возвращением</h1><p id="authSubtitle">Войди, чтобы смотреть вместе с друзьями.</p>
+        <form id="authForm" class="modal-form auth-form">
+          <div id="signupFields" class="hidden"><label for="authDisplayName">Как тебя называть</label><input id="authDisplayName" type="text" maxlength="24" placeholder="Имя" autocomplete="nickname" /><label for="authUsername">Придумай ник</label><input id="authUsername" type="text" minlength="3" maxlength="20" placeholder="например, alex_07" autocomplete="username" /></div>
+          <label for="authEmail">Электронная почта</label><input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+          <label for="authPassword">Пароль</label><input id="authPassword" type="password" minlength="8" placeholder="Не менее 8 символов" autocomplete="current-password" required />
+          <button class="button button-primary button-full" id="authSubmit" type="submit">Войти</button>
+        </form>
+        <div class="auth-switch"><span id="authSwitchText">Впервые в SYNC?</span><button id="authSwitch" type="button">Создать аккаунт</button></div>
+      </div>
+      <div class="auth-status" id="authStatus" role="status"></div>
     </div>
   </div>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle">
+    <div class="modal-card modal-wide">
+      <button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button>
+      <span class="modal-icon">✳</span><span class="overline">ВАШ КРУГ</span><h2 id="friendModalTitle">Найти друзей</h2><p>Введи ник человека, чтобы отправить заявку.</p>
+      <form id="friendSearchForm" class="modal-form"><label for="friendName">Ник пользователя</label><div class="inline-form"><input id="friendName" type="text" placeholder="например, alex_07" minlength="3" maxlength="20" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form>
+      <div id="friendSearchResults" class="modal-list"></div>
+      <div class="request-divider"><span>Входящие заявки</span></div>
+      <div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <div class="modal-card">
+      <button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button>
+      <span class="modal-icon">◎</span><span class="overline">АККАУНТ</span><h2 id="profileModalTitle">Твой профиль</h2>
+      <form id="profileForm" class="modal-form"><label for="profileDisplayName">Имя</label><input id="profileDisplayName" type="text" maxlength="24" required /><label for="profileUsername">Ник</label><input id="profileUsername" type="text" minlength="3" maxlength="20" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form>
+      <button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
