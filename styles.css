@@ -14,3 +14,52 @@
 @media(max-width:560px){.topbar{height:64px;padding:0 14px}.brand{font-size:19px;gap:8px}.brand-icon{width:33px;height:33px}.main-nav{margin-left:18px;gap:15px}.nav-link{font-size:10px}.top-actions{gap:8px}.button-invite{padding:8px 10px;font-size:0}.button-invite span{font-size:16px}.profile-avatar{width:35px;height:35px}.app-layout{width:calc(100% - 24px);margin:16px auto 42px;gap:15px}.main-column{gap:15px}.hero-card{min-height:320px;padding:29px 24px 48px;border-radius:22px}.hero-card h1{font-size:39px;letter-spacing:-2px;margin:15px 0 11px}.hero-card p{max-width:270px;font-size:11px}.hero-art{right:-48px;top:40px;transform:scale(.6);opacity:.32}.hero-actions{gap:8px;margin-top:19px}.hero-actions .button{padding:11px 12px;font-size:10px}.hero-bottom{left:24px;right:24px;bottom:16px;font-size:7px;letter-spacing:.5px}.hero-bottom span:last-child{display:none}.player-card{padding:12px;border-radius:19px}.player-topline{padding:2px 2px 12px}.player-topline h2{font-size:15px}.room-controls{gap:7px}.room-live{font-size:8px}.button-small{font-size:8px;padding:8px}.video-stage{min-height:205px;aspect-ratio:16/9;border-radius:13px}.stage-empty{gap:9px;padding:16px}.stage-symbol{width:49px;height:49px;border-radius:16px;font-size:21px}.stage-empty strong{font-size:15px}.stage-empty p{font-size:9px}.watch-meta{padding:11px 2px 1px;align-items:flex-start}.mini-cover{width:35px;height:35px}.now-copy strong{max-width:170px;font-size:10px}.now-copy>span:last-child{font-size:8px}.sync-status{font-size:8px;padding-top:7px}.providers-section{padding:17px;border-radius:19px}.section-heading h2{font-size:18px}.section-heading p{font-size:9px;line-height:1.55}.provider-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.provider-card{min-height:69px;padding:9px;gap:8px;border-radius:12px}.provider-logo{width:31px;height:31px}.provider-copy strong{font-size:9px}.provider-copy small{font-size:7px}.provider-workspace{padding:12px}.workspace-head h3{font-size:15px}.workspace-head p{font-size:9px}.provider-search{gap:6px;padding-left:9px}.provider-search input{font-size:9px}.provider-search .button{padding:8px 10px;font-size:9px}.search-results{grid-template-columns:1fr}.result-thumb{width:105px}.side-column{grid-template-columns:1fr;gap:12px}.chat-card{grid-column:auto}.chat-messages{height:135px}.side-card{padding:15px}.auth-card{padding:25px 21px}.modal-card{padding:23px}.inline-form{flex-direction:column}.inline-form .button{width:100%}}
 /* Image avatars are used for both the account button and participant rows. */
 .person-avatar,.profile-avatar{position:relative;overflow:hidden}.avatar-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+
+
+/* SYNC 0.5 — clearer typography, stronger hierarchy and readable social panels */
+.nav-button{border:0;background:transparent;font-family:inherit;cursor:pointer;padding:0 2px}
+.provider-logo{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.06)}
+.provider-logo svg{display:block;width:100%;height:100%;padding:7px}
+.youtube-logo{background:rgba(255,0,51,.12)}.youtube-logo svg{width:42px;height:30px;padding:0}
+.rutube-logo{background:rgba(139,72,255,.12)}.rutube-logo svg{padding:3px;width:44px;height:44px}
+.vk-logo{background:rgba(8,120,249,.14)}.vk-logo svg{padding:0;width:42px;height:42px}
+.netflix-logo{background:rgba(229,9,20,.09)}.netflix-logo svg{width:32px;height:40px;padding:2px}
+.kp-logo{background:rgba(242,169,0,.1)}.kp-logo svg{padding:2px;width:40px;height:40px}
+.provider-card{min-height:94px;padding:15px 16px;border-radius:17px;gap:13px}
+.provider-copy strong{font-size:14px}.provider-copy small{font-size:11px;line-height:1.35}
+.provider-arrow{font-size:18px;width:25px;height:25px;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.045)}
+.provider-card:hover{transform:translateY(-2px);border-color:rgba(180,134,255,.38);background:linear-gradient(145deg,rgba(38,27,61,.9),rgba(19,15,32,.96));box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.provider-workspace{scroll-margin-top:22px;padding:24px;border-radius:20px;background:linear-gradient(145deg,rgba(27,21,44,.98),rgba(17,14,29,.98))}
+.provider-search{min-height:56px;border-radius:15px;padding-left:16px}.provider-search input{font-size:14px}.provider-search .button{font-size:13px;padding:11px 18px}
+.provider-message{font-size:12px;line-height:1.6;padding:12px 14px;border-radius:12px}
+.search-results{gap:12px}.result-card{padding:10px;border-radius:14px;gap:13px;background:rgba(255,255,255,.035)}.result-thumb{width:132px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;background:#100c20}.result-copy strong{font-size:13px;line-height:1.45}.result-copy>span{font-size:11px}.result-play{font-size:11px;padding:9px 13px;border-radius:10px}
+.profile-avatar{width:48px;height:48px;border:1px solid rgba(196,160,255,.45);box-shadow:0 0 0 3px rgba(139,72,255,.11),0 7px 20px rgba(0,0,0,.25);font-size:16px}
+.person-avatar{width:42px;height:42px;flex:0 0 42px;font-size:13px;border:1px solid rgba(194,154,255,.2)}
+.friend-row{gap:12px;padding:7px 0}.friend-row .person-avatar{width:40px;height:40px;flex-basis:40px}.friend-row .person-info strong,.person-info strong{font-size:13px}.friend-row .friend-state{display:none}
+.side-card{padding:21px}.card-heading h2{font-size:18px}.eyebrow{font-size:10px;letter-spacing:1.55px}
+.chat-card{min-height:440px;max-height:560px;padding:22px}
+.chat-messages{height:320px;max-height:380px;gap:14px;padding:8px 4px 16px}
+.chat-message{gap:11px;max-width:100%}.chat-message .person-avatar{width:38px;height:38px;flex-basis:38px;font-size:12px}
+.message-body{padding:10px 13px;border:1px solid rgba(190,157,255,.13);border-radius:5px 15px 15px 15px;background:linear-gradient(145deg,rgba(44,33,67,.78),rgba(29,23,43,.86));box-shadow:0 5px 15px rgba(0,0,0,.12)}
+.message-meta{gap:10px}.message-meta strong{font-size:12px;color:#f6efff;font-weight:800}.message-meta time{font-size:10px;color:#a99bbd}
+.message-text{margin-top:6px;font-size:13px;line-height:1.55;color:#f0eaf8}
+.chat-message.mine .message-body{background:linear-gradient(145deg,rgba(94,52,153,.48),rgba(55,37,85,.68));border-color:rgba(185,137,255,.28);border-radius:15px 5px 15px 15px}
+.chat-message.mine{flex-direction:row-reverse}
+.chat-message.mine .message-meta{justify-content:flex-end}
+.chat-form{height:54px;padding:6px 7px 6px 15px;border-radius:15px;background:rgba(255,255,255,.055);border-color:rgba(192,155,255,.24)}
+.chat-form input{font-size:13px}.chat-form input::placeholder{font-size:12px}.chat-form button{width:40px;height:40px;border-radius:12px;font-size:21px}
+.avatar-upload-row img{width:112px;height:112px;object-fit:cover;image-rendering:auto;border:3px solid rgba(179,121,255,.75);box-shadow:0 0 25px rgba(139,72,255,.18)}
+.avatar-upload-row small{font-size:10px}.upload-label{font-size:11px}
+.modal-card{padding:30px}.modal-card h2{font-size:24px}.modal-card p{font-size:12px}.modal-form label{font-size:12px}.modal-form input{font-size:13px;height:48px}.modal-user-row{padding:12px;gap:12px}.modal-user-row .person-avatar{width:42px;height:42px;flex-basis:42px}.modal-user-row .person-info strong{font-size:13px}
+.hero-card{border-color:rgba(192,155,255,.22);background:radial-gradient(ellipse at 80% 20%,rgba(121,63,221,.28),transparent 43%),linear-gradient(125deg,#19132b 0%,#120e20 70%,#1c1230 100%);box-shadow:0 24px 70px rgba(0,0,0,.27)}
+.hero-card h1{font-size:clamp(42px,4vw,58px)}.hero-card p{font-size:14px;line-height:1.7;color:#bcb1cd;max-width:500px}
+.hero-glyph{filter:drop-shadow(0 0 30px rgba(150,80,255,.45))}
+.player-card,.providers-section,.side-card{border-color:rgba(190,159,255,.14);box-shadow:0 18px 52px rgba(0,0,0,.17)}
+.player-topline h2{font-size:21px}.section-heading h2{font-size:24px}.section-heading p{font-size:13px;color:#a99dbb}
+.now-copy strong{font-size:14px}.now-copy>span:last-child{font-size:11px}.sync-status{font-size:11px}
+.people-list{gap:14px}.person-row{gap:12px}.person-info span{font-size:11px}
+.people-bottom{font-size:11px}.text-action{font-size:11px}
+.friends-list{gap:12px}.friend-row .friend-online{width:9px;height:9px}
+.auth-card h1{font-size:30px}.auth-card>div>p{font-size:13px}.auth-form input{font-size:13px}.google-button{font-size:13px;min-height:48px}
+@media(max-width:820px){.chat-card{min-height:400px}.chat-messages{height:270px}}
+@media(max-width:560px){.provider-card{min-height:78px;padding:10px}.provider-logo{flex-basis:38px;width:38px;height:38px}.provider-copy strong{font-size:11px}.provider-copy small{font-size:9px}.provider-workspace{padding:15px}.result-thumb{width:108px}.result-copy strong{font-size:11px}.result-play{font-size:10px}.chat-card{min-height:370px}.chat-messages{height:245px}.message-text{font-size:12px}.message-body{padding:9px 11px}.profile-avatar{width:40px;height:40px}.avatar-upload-row img{width:96px;height:96px}.hero-card p{font-size:12px}}

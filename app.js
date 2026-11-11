@@ -45,7 +45,7 @@
     node.replaceChildren();
     if (url) {
       const image = document.createElement('img');
-      image.className = 'avatar-image'; image.alt = ''; image.loading = 'lazy'; image.src = url;
+      image.className = 'avatar-image'; image.alt = ''; image.loading = 'eager'; image.decoding = 'async'; image.fetchPriority = 'high'; image.src = normalizeGoogleAvatar(url);
       image.onerror = () => { image.remove(); node.textContent = initials(name); };
       node.append(image);
     } else node.textContent = initials(name);
@@ -64,6 +64,10 @@
   };
   const displayName = () => profile?.display_name || authUser?.email?.split('@')[0] || 'Гость';
   const cleanUsername = (value) => String(value || '').trim().replace(/^@/, '').toLowerCase();
+  function normalizeGoogleAvatar(url) {
+    if (!url) return '';
+    return String(url).replace(/=s\d+(-c)?(?=($|\?))/, '=s512-c').replace(/([?&]sz=)\d+/g, (_match, prefix) => `${prefix}512`);
+  }
 
   function showAuthGate() {
     $('#authGate').classList.remove('hidden');
@@ -103,7 +107,6 @@
     $('#authSwitchText').textContent = signup ? 'Уже есть аккаунт?' : 'Впервые в SYNC?';
     $('#authSwitch').textContent = signup ? 'Войти' : 'Создать аккаунт';
     $('#authPassword').autocomplete = signup ? 'new-password' : 'current-password';
-    $('#authUsername').required = signup;
     $('#authDisplayName').required = signup;
     setAuthStatus('');
   }
@@ -137,14 +140,12 @@
     setAuthStatus('');
     try {
       if (authMode === 'signup') {
-        const username = cleanUsername($('#authUsername').value);
         const name = $('#authDisplayName').value.trim();
-        if (!/^[a-z0-9_]{3,20}$/.test(username)) throw new Error('Ник: 3–20 символов, только латинские буквы, цифры и _.');
-        if (name.length < 2) throw new Error('Имя должно быть не короче двух символов.');
+        if (name.length < 2) throw new Error('Напиши, как к тебе обращаться (минимум 2 символа).');
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { username, display_name: name } }
+          options: { data: { display_name: name } }
         });
         if (error) throw error;
         if (!data.session) {
@@ -195,28 +196,45 @@
   function updateProfileUI() {
     setAvatar($('#profileButton'), profile?.avatar_url, displayName());
     $('#profileDisplayName').value = profile?.display_name || '';
-    $('#profileUsername').value = profile?.username || '';
     $('#profileEmail').textContent = authUser?.email || '';
-    $('#avatarPreview').src = profile?.avatar_url || 'icon.svg';
+    $('#avatarPreview').src = profile?.avatar_url ? normalizeGoogleAvatar(profile.avatar_url) : 'icon.svg';
+  }
+
+  async function prepareAvatar(file) {
+    const bitmap = await createImageBitmap(file);
+    const size = Math.min(768, Math.min(bitmap.width, bitmap.height));
+    const sx = Math.max(0, Math.round((bitmap.width - size) / 2));
+    const sy = Math.max(0, Math.round((bitmap.height - size) / 2));
+    const canvas = document.createElement('canvas');
+    canvas.width = 768; canvas.height = 768;
+    const context = canvas.getContext('2d', { alpha: false });
+    context.imageSmoothingEnabled = true; context.imageSmoothingQuality = 'high';
+    context.drawImage(bitmap, sx, sy, size, size, 0, 0, 768, 768);
+    bitmap.close?.();
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.94));
+    if (!blob) throw new Error('Не удалось обработать изображение');
+    return blob;
   }
 
   async function uploadAvatar(file) {
     if (!file || !supabase || !authUser) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return showToast('Выбери JPG, PNG или WebP');
-    if (file.size > 5 * 1024 * 1024) return showToast('Фото должно быть меньше 5 МБ');
-    const extension = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
-    const path = `${authUser.id}/${Date.now()}.${extension}`;
-    showToast('Загружаем фото…');
-    const { error: uploadError } = await supabase.storage.from('sync-avatars').upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
-    if (uploadError) return showToast(`Не удалось загрузить фото: ${uploadError.message}`);
-    const { data } = supabase.storage.from('sync-avatars').getPublicUrl(path);
-    const avatarUrl = data?.publicUrl;
-    const { data: updated, error } = await supabase.from('sync_profiles').update({ avatar_url: avatarUrl }).eq('id', authUser.id).select('id,username,display_name,avatar_url').single();
-    if (error) return showToast(`Фото загружено, но профиль не обновился: ${error.message}`);
-    profile = updated; updateProfileUI();
-    if (roomChannel) await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url });
-    if (onlineChannel) await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url });
-    renderMembers(); showToast('Фото профиля обновлено');
+    if (file.size > 10 * 1024 * 1024) return showToast('Фото должно быть меньше 10 МБ');
+    try {
+      showToast('Подготавливаем фото…');
+      const processed = await prepareAvatar(file);
+      const path = `${authUser.id}/${Date.now()}.webp`;
+      const { error: uploadError } = await supabase.storage.from('sync-avatars').upload(path, processed, { upsert: true, contentType: 'image/webp', cacheControl: '31536000' });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('sync-avatars').getPublicUrl(path);
+      const avatarUrl = data?.publicUrl;
+      const { data: updated, error } = await supabase.from('sync_profiles').update({ avatar_url: avatarUrl }).eq('id', authUser.id).select('id,username,display_name,avatar_url').single();
+      if (error) throw error;
+      profile = updated; updateProfileUI();
+      if (roomChannel) await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url });
+      if (onlineChannel) await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url });
+      renderMembers(); showToast('Фото профиля обновлено');
+    } catch (error) { showToast(`Не удалось обновить фото: ${error.message}`); }
   }
 
   async function signOut() {
@@ -240,22 +258,20 @@
   async function saveProfile(event) {
     event.preventDefault();
     const name = $('#profileDisplayName').value.trim();
-    const username = cleanUsername($('#profileUsername').value);
-    if (name.length < 2) return showToast('Имя должно быть не короче двух символов');
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) return showToast('Проверь формат ника');
+    if (name.length < 2 || name.length > 24) return showToast('Имя должно содержать от 2 до 24 символов');
     const { data, error } = await supabase.from('sync_profiles')
-      .update({ display_name: name, username })
+      .update({ display_name: name })
       .eq('id', authUser.id)
       .select('id,username,display_name,avatar_url')
       .single();
-    if (error) return showToast(error.code === '23505' ? 'Этот ник уже занят' : error.message);
+    if (error) return showToast(error.message);
     profile = data;
     updateProfileUI();
     $('#profileModal').classList.add('hidden');
     if (roomChannel) await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null });
     if (onlineChannel) await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null });
     renderMembers();
-    showToast('Профиль сохранён');
+    showToast('Имя обновлено');
   }
 
   function setRoomUrl(roomId, token) {
@@ -326,7 +342,7 @@
       .on('presence', { event: 'join' }, renderMembers)
       .on('presence', { event: 'leave' }, renderMembers)
       .on('broadcast', { event: 'chat' }, ({ payload }) => {
-        if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '');
+        if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '', false, payload?.avatar_url || '', payload?.created_at || Date.now());
       })
       .on('broadcast', { event: 'video' }, async ({ payload }) => {
         if (payload?.user_id !== authUser.id && payload?.videoId && ['youtube', 'rutube'].includes(payload.provider)) {
@@ -440,14 +456,13 @@
       const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, friend.avatar_url, friend.display_name || friend.username);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = friend.display_name || friend.username;
-      const handle = document.createElement('span'); handle.className = 'friend-state'; handle.textContent = `@${friend.username}`;
       const dot = document.createElement('span'); dot.className = `friend-online${onlineIds.has(friend.id) ? ' online' : ''}`; dot.title = onlineIds.has(friend.id) ? 'В сети' : 'Не в сети';
       const actions = document.createElement('div'); actions.className = 'friend-actions';
       const invite = document.createElement('button'); invite.className = 'friend-action'; invite.textContent = '↗'; invite.title = 'Пригласить в комнату'; invite.setAttribute('aria-label', `Пригласить ${friend.display_name || friend.username}`);
       invite.addEventListener('click', () => inviteFriend(friend.display_name || friend.username));
       const remove = document.createElement('button'); remove.className = 'friend-action'; remove.textContent = '×'; remove.title = 'Удалить из друзей'; remove.setAttribute('aria-label', `Удалить ${friend.username}`);
       remove.addEventListener('click', () => removeFriend(friend.requestId));
-      info.append(name, handle); actions.append(invite, remove); row.append(avatar, info, dot, actions); list.append(row);
+      info.append(name); actions.append(invite, remove); row.append(avatar, info, dot, actions); list.append(row);
     });
   }
 
@@ -459,34 +474,45 @@
 
   async function searchUsers(event) {
     event.preventDefault();
-    const query = cleanUsername($('#friendName').value);
+    const query = $('#friendName').value.trim().replace(/[,%_]/g, ' ').replace(/\s+/g, ' ');
     const box = $('#friendSearchResults'); box.replaceChildren();
-    if (!/^[a-z0-9_]{3,20}$/.test(query)) {
-      box.textContent = 'Ник должен содержать 3–20 латинских букв, цифр или _.';
+    if (query.length < 2) {
+      box.textContent = 'Введи хотя бы 2 символа имени.';
       box.className = 'modal-list modal-empty'; return;
     }
     box.className = 'modal-list';
-    const loading = document.createElement('div'); loading.className = 'modal-empty'; loading.textContent = 'Ищем…'; box.append(loading);
+    const loading = document.createElement('div'); loading.className = 'modal-empty'; loading.textContent = 'Ищем людей…'; box.append(loading);
     const { data, error } = await supabase.from('sync_profiles')
       .select('id,username,display_name,avatar_url')
-      .ilike('username', `${query}%`)
+      .ilike('display_name', `%${query}%`)
       .neq('id', authUser.id)
-      .limit(8);
+      .limit(12);
     box.replaceChildren();
-    if (error) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = error.message; box.append(msg); return; }
-    if (!data?.length) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = 'Никого не нашли. Проверь написание.'; box.append(msg); return; }
+    if (error) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = `Не удалось найти людей: ${error.message}`; box.append(msg); return; }
+    if (!data?.length) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = 'Пока никого не нашли. Попробуй другое написание.'; box.append(msg); return; }
     data.forEach((person) => {
       const existing = friends.some((friend) => friend.id === person.id);
       const item = document.createElement('div'); item.className = 'modal-user-row';
       const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, person.avatar_url, person.display_name);
       const info = document.createElement('div'); info.className = 'person-info';
-      const name = document.createElement('strong'); name.textContent = person.display_name;
-      const username = document.createElement('span'); username.textContent = `@${person.username}`;
+      const name = document.createElement('strong'); name.textContent = person.display_name || 'Пользователь';
       const button = document.createElement('button'); button.className = 'button button-primary'; button.type = 'button';
       button.textContent = existing ? 'Уже в друзьях' : 'Добавить'; button.disabled = existing;
-      button.addEventListener('click', () => sendFriendRequest(person.username, button));
-      info.append(name, username); item.append(avatar, info, button); box.append(item);
+      button.addEventListener('click', () => sendFriendRequestById(person.id, button));
+      info.append(name); item.append(avatar, info, button); box.append(item);
     });
+  }
+
+  async function sendFriendRequestById(userId, button) {
+    button.disabled = true; button.textContent = 'Отправляем…';
+    const { data, error } = await supabase.rpc('send_friend_request_by_id', { p_target_id: userId });
+    if (error) { button.disabled = false; button.textContent = 'Добавить'; showToast(error.message); return; }
+    const status = typeof data === 'string' ? data : data?.status;
+    if (status === 'accepted') { await loadFriends(); showToast('Теперь вы друзья'); }
+    else if (status === 'already_friends') showToast('Вы уже друзья');
+    else if (status === 'pending') showToast('Заявка уже отправлена');
+    else showToast('Заявка отправлена');
+    button.textContent = status === 'already_friends' ? 'Уже в друзьях' : 'Заявка отправлена';
   }
 
   async function sendFriendRequest(username, button) {
@@ -510,12 +536,11 @@
       const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, user.avatar_url, user.display_name || user.username);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = user.display_name || 'Пользователь';
-      const username = document.createElement('span'); username.textContent = `@${user.username || ''}`;
       const accept = document.createElement('button'); accept.className = 'button button-primary'; accept.type = 'button'; accept.textContent = 'Принять';
       accept.addEventListener('click', () => respondRequest(request.id, true));
       const decline = document.createElement('button'); decline.className = 'friend-action'; decline.type = 'button'; decline.textContent = '×'; decline.title = 'Отклонить';
       decline.addEventListener('click', () => respondRequest(request.id, false));
-      info.append(name, username); item.append(avatar, info, accept, decline); box.append(item);
+      info.append(name); item.append(avatar, info, accept, decline); box.append(item);
     });
   }
 
@@ -529,23 +554,24 @@
     showToast(accept ? 'Заявка принята' : 'Заявка отклонена');
   }
 
-  function addChatMessage(name, message, mine = false) {
+  function addChatMessage(name, message, mine = false, avatarUrl = '', createdAt = Date.now()) {
     if (!message) return;
     const welcome = $('#chatMessages .chat-welcome'); if (welcome) welcome.remove();
-    const wrap = document.createElement('div'); wrap.className = 'chat-message';
-    const avatar = document.createElement('div'); avatar.className = 'person-avatar'; avatar.textContent = initials(name);
+    const wrap = document.createElement('div'); wrap.className = `chat-message${mine ? ' mine' : ''}`;
+    const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, avatarUrl, name);
     const body = document.createElement('div'); body.className = 'message-body';
     const meta = document.createElement('div'); meta.className = 'message-meta';
-    const strong = document.createElement('strong'); strong.textContent = mine ? 'Вы' : name;
-    const time = document.createElement('span'); time.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const strong = document.createElement('strong'); strong.textContent = mine ? 'Ты' : (name || 'Друг');
+    const time = document.createElement('time'); time.textContent = new Date(createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     const text = document.createElement('div'); text.className = 'message-text'; text.textContent = message;
     meta.append(strong, time); body.append(meta, text); wrap.append(avatar, body); $('#chatMessages').append(wrap);
     $('#chatMessages').scrollTop = $('#chatMessages').scrollHeight;
   }
 
   async function sendChatMessage(message) {
-    addChatMessage(displayName(), message, true);
-    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message } });
+    const createdAt = Date.now();
+    addChatMessage(displayName(), message, true, profile?.avatar_url, createdAt);
+    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), avatar_url: profile?.avatar_url || null, message, created_at: createdAt } });
   }
 
   function selectProvider(name) {
@@ -583,37 +609,35 @@
   }
 
   async function searchVideos(query) {
-    const cleaned = query.trim();
-    if (!cleaned) { showToast('Напиши название видео'); $('#providerSearchInput').focus(); return; }
-    if (provider === 'youtube') {
-      if (!config.YOUTUBE_API_KEY) {
-        renderSearchNotice('Поиск YouTube пока не включён: добавь YOUTUBE_API_KEY в config.js из Google Cloud Console → YouTube Data API v3.');
-        return;
+    const cleaned = String(query || '').trim();
+    if (!cleaned) { showToast('Напиши, что ищем'); $('#providerSearchInput').focus(); return; }
+    if (!['youtube', 'rutube'].includes(provider)) return renderSearchNotice('Поиск этой площадки пока не подключён.');
+    const submit = $('#providerSearchForm button[type="submit"]');
+    submit.disabled = true; submit.textContent = 'Ищем…';
+    renderSearchNotice(`Ищем «${cleaned}» на ${providers[provider].name}…`);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-search', { body: { provider, query: cleaned } });
+      if (error) {
+        let serverMessage = '';
+        try {
+          const body = await error.context?.clone?.().json?.();
+          serverMessage = body?.error || body?.message || '';
+        } catch {}
+        throw new Error(serverMessage || error.message || 'Функция поиска не отвечает');
       }
-      renderSearchNotice('Ищем видео на YouTube…');
-      try {
-        const endpoint = new URL('https://www.googleapis.com/youtube/v3/search');
-        endpoint.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '10', q: cleaned, key: config.YOUTUBE_API_KEY }).toString();
-        const response = await fetch(endpoint);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.error?.message || 'YouTube API вернул ошибку');
-        renderYoutubeResults(data.items || []);
-      } catch (error) { renderSearchNotice(`Поиск YouTube не сработал: ${error.message}`); }
-      return;
-    }
-    if (provider === 'rutube') {
-      renderSearchNotice('Ищем видео на RUTUBE…');
-      try {
-        const endpoint = new URL('https://rutube.ru/api/search/video/');
-        endpoint.search = new URLSearchParams({ query: cleaned, page: '1', limit: '12' }).toString();
-        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(`RUTUBE ответил ${response.status}`);
-        const data = await response.json();
-        const items = Array.isArray(data) ? data : (data.results || data.data || data.items || []);
-        renderRutubeResults(items);
-      } catch (error) {
-        renderSearchNotice(`RUTUBE не отдал результаты прямо в SYNC (${error.message}). Поиск этой площадки может ограничивать запросы с других сайтов. Встроенный плеер RUTUBE при этом поддерживается.`);
+      if (data?.error) throw new Error(data.error);
+      renderVideoCards(Array.isArray(data?.results) ? data.results : [], provider);
+    } catch (error) {
+      const text = String(error?.message || error);
+      if (/404|not found|function not found|non-2xx|functionsfetcherror|failed to send a request/i.test(text)) {
+        renderSearchNotice('Поиск ещё не подключён к серверу. В архиве есть функция sync-search — её нужно один раз опубликовать в Supabase.');
+      } else if (/YOUTUBE_API_KEY/i.test(text)) {
+        renderSearchNotice('Для поиска YouTube добавь ключ YouTube Data API v3 в Secrets функции sync-search в Supabase.');
+      } else {
+        renderSearchNotice(`Не получилось выполнить поиск: ${text}`);
       }
+    } finally {
+      submit.disabled = false; submit.textContent = 'Найти';
     }
   }
 
@@ -632,25 +656,9 @@
     });
   }
 
-  function renderYoutubeResults(items) {
-    const clean = (items || []).map((item) => ({
-      id: item?.id?.videoId,
-      title: item?.snippet?.title,
-      author: item?.snippet?.channelTitle,
-      thumbnail: item?.snippet?.thumbnails?.medium?.url || item?.snippet?.thumbnails?.default?.url || ''
-    })).filter((item) => item.id);
-    renderVideoCards(clean, 'youtube');
-  }
+  function renderYoutubeResults(items) { renderVideoCards(items || [], 'youtube'); }
 
-  function renderRutubeResults(items) {
-    const clean = (items || []).map((item) => ({
-      id: String(item?.id || item?.video_id || item?.videoId || ''),
-      title: item?.title || item?.name,
-      author: item?.author?.name || item?.author || item?.channel?.name || 'RUTUBE',
-      thumbnail: item?.thumbnail_url || item?.thumbnail || item?.picture || ''
-    })).filter((item) => /^[A-Za-z0-9_-]{8,}$/.test(item.id));
-    renderVideoCards(clean, 'rutube');
-  }
+  function renderRutubeResults(items) { renderVideoCards(items || [], 'rutube'); }
 
   function loadYoutubeApi() {
     if (window.YT?.Player) return Promise.resolve();
@@ -873,6 +881,8 @@
     $('#shareRoomSmall').addEventListener('click', () => shareRoom());
     $('#newRoom').addEventListener('click', () => createRoom(true));
     $('#addFriend').addEventListener('click', () => openModal('friendModal'));
+    $('#friendsNav').addEventListener('click', () => { $$('.nav-link').forEach((item) => item.classList.toggle('active', item.id === 'friendsNav')); openModal('friendModal'); });
+    document.querySelector('.nav-link[href="#watch"]')?.addEventListener('click', () => $$('.nav-link').forEach((item) => item.classList.toggle('active', item.getAttribute('href') === '#watch')));
     $('#friendSearchForm').addEventListener('submit', searchUsers);
     $$('[data-close]').forEach((button) => button.addEventListener('click', () => closeModal(button.dataset.close)));
     $$('.modal-backdrop').forEach((backdrop) => backdrop.addEventListener('click', (event) => { if (event.target === backdrop) closeModal(backdrop.id); }));
