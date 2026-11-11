@@ -66,24 +66,17 @@
       <section class="discover-section" id="discover">
         <div class="discover-intro">
           <h2>Что будем смотреть?</h2>
-          <p>Найди фильм, сериал, шоу или видео — выбери площадку.</p>
+          <p>Введи название или ссылку — выбери, где смотреть.</p>
         </div>
         <form class="search-bar" id="searchForm" role="search">
           <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="searchInput" type="search" placeholder="Название фильма, сериала, шоу или ссылка YouTube" autocomplete="off" maxlength="100" aria-label="Что будем смотреть?" />
-          <button class="button button-primary search-submit" type="submit"><span>Найти</span><span aria-hidden="true">↗</span></button>
+          <input id="searchInput" type="search" placeholder="Название или ссылка на видео…" autocomplete="off" maxlength="100" aria-label="Что будем смотреть?" />
+          <button class="button button-primary search-submit" type="submit"><span>Смотреть</span><span aria-hidden="true">▶</span></button>
         </form>
-        <div class="search-kind-row" id="searchKinds" aria-label="Тип контента">
-          <button class="kind-chip selected" type="button" data-kind="all">Всё</button>
-          <button class="kind-chip" type="button" data-kind="movie">Фильмы</button>
-          <button class="kind-chip" type="button" data-kind="series">Сериалы</button>
-          <button class="kind-chip" type="button" data-kind="show">Шоу</button>
-          <button class="kind-chip" type="button" data-kind="video">Видео</button>
-        </div>
-        <div class="directory-head"><h3 id="directoryTitle">Площадки</h3><span id="directoryNote">Выбери сервис</span></div>
-        <div class="provider-directory" id="providerDirectory" aria-live="polite"></div>
+        <div class="directory-head" id="directoryHead" hidden><h3 id="directoryTitle">Выбери площадку</h3><span id="directoryNote"></span></div>
+        <div class="provider-directory" id="providerDirectory" aria-live="polite" hidden></div>
         <div class="search-results hidden" id="searchResults" aria-live="polite"></div>
-        <p class="directory-footnote">Поиск откроет сервис или результаты по его каталогу. Наличие контента зависит от региона и подписки.</p>
+        <p class="directory-footnote" id="directoryFootnote" hidden>Доступность фильма зависит от региона и подписки.</p>
       </section>
     </section>
 

@@ -6,7 +6,7 @@
   const config = window.SYNC_CONFIG || {};
   const serviceGroups = [
     {
-      title: 'Видео и шоу',
+      title: 'Видеоплатформы',
       services: [
         { id: 'youtube', name: 'YouTube', mark: '▶', brand: 'youtube', note: 'Видео, каналы и шоу', domain: 'youtube.com', home: 'https://www.youtube.com/', search: q => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
         { id: 'rutube', name: 'RUTUBE', mark: 'R', brand: 'rutube', note: 'Видео и телешоу', domain: 'rutube.ru', home: 'https://rutube.ru/', search: q => `https://rutube.ru/search/?query=${encodeURIComponent(q)}` },
@@ -15,7 +15,7 @@
       ]
     },
     {
-      title: 'Фильмы и сериалы',
+      title: 'Онлайн-кинотеатры',
       services: [
         { id: 'kinopoisk', name: 'Кинопоиск', mark: 'К', brand: 'kinopoisk', note: 'Фильмы, сериалы и подборки', domain: 'kinopoisk.ru', home: 'https://hd.kinopoisk.ru/', search: q => `https://hd.kinopoisk.ru/search?text=${encodeURIComponent(q)}` },
         { id: 'ivi', name: 'Иви', mark: 'ivi', brand: 'ivi', note: 'Фильмы и сериалы', domain: 'ivi.ru', home: 'https://www.ivi.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:ivi.ru ${q}`)}` },
@@ -32,15 +32,10 @@
       ]
     }
   ];
-  const searchKinds = {
-    all: '', movie: 'фильм', series: 'сериал', show: 'шоу', video: 'видео'
-  };
-
   let supabase = null;
   let authUser = null;
   let profile = null;
   let authMode = 'signin';
-  let searchKind = 'all';
   let lastSearchQuery = '';
   let currentRoom = null;
   let inviteToken = null;
@@ -660,24 +655,33 @@
     if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message, avatar_url: avatarUrl() } });
   }
 
-  function effectiveSearchQuery(rawQuery) {
-    const clean = String(rawQuery || '').trim();
-    const prefix = searchKinds[searchKind] || '';
-    return prefix ? `${prefix} ${clean}` : clean;
-  }
-
-  function makeServiceCard(service, query) {
+  function makeServiceCard(service, query, order = 0) {
     const card = document.createElement('a');
     card.className = `service-card service-${service.brand}`;
     card.href = query ? service.search(query) : service.home;
     card.target = '_blank';
     card.rel = 'noopener noreferrer';
-    card.setAttribute('aria-label', `${query ? 'Искать' : 'Открыть'} ${service.name}`);
+    card.setAttribute('aria-label', `Искать «${query}» на ${service.name}`);
+    card.style.setProperty('--fly-delay', `${Math.min(order, 30) * 55}ms`);
 
     const mark = document.createElement('span');
     mark.className = `service-mark mark-${service.brand}`;
-    mark.textContent = service.mark;
     mark.setAttribute('aria-hidden', 'true');
+
+    // Настоящий favicon сервиса, а не текстовая буква-заглушка.
+    const logo = document.createElement('img');
+    logo.className = 'service-logo';
+    logo.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(service.domain)}&sz=128`;
+    logo.alt = '';
+    logo.loading = 'lazy';
+    logo.decoding = 'async';
+    logo.referrerPolicy = 'no-referrer';
+    logo.addEventListener('error', () => {
+      logo.remove();
+      mark.textContent = service.mark;
+      mark.classList.add('service-mark-fallback');
+    }, { once: true });
+    mark.append(logo);
 
     const copy = document.createElement('span');
     copy.className = 'service-copy';
@@ -689,7 +693,7 @@
 
     const action = document.createElement('span');
     action.className = 'service-action';
-    action.textContent = query ? 'Искать ↗' : 'Открыть ↗';
+    action.textContent = 'Открыть ↗';
     card.append(mark, copy, action);
     return card;
   }
@@ -699,9 +703,12 @@
     if (!directory) return;
     directory.replaceChildren();
     const normalizedQuery = String(query || '').trim();
-    $('#directoryTitle').textContent = normalizedQuery ? 'Искать на площадках' : 'Площадки';
-    $('#directoryNote').textContent = normalizedQuery ? `Запрос: ${normalizedQuery}` : 'Выбери сервис';
+    const head = $('#directoryHead');
+    const footnote = $('#directoryFootnote');
+    $('#directoryTitle').textContent = 'Выбери, где смотреть';
+    $('#directoryNote').textContent = normalizedQuery;
 
+    let order = 0;
     serviceGroups.forEach((group) => {
       const section = document.createElement('section');
       section.className = 'service-group';
@@ -709,10 +716,17 @@
       heading.textContent = group.title;
       const grid = document.createElement('div');
       grid.className = 'service-grid';
-      group.services.forEach((service) => grid.append(makeServiceCard(service, normalizedQuery)));
+      group.services.forEach((service) => grid.append(makeServiceCard(service, normalizedQuery, order++)));
       section.append(heading, grid);
       directory.append(section);
     });
+
+    head.hidden = false;
+    footnote.hidden = false;
+    directory.hidden = false;
+    directory.classList.remove('is-visible');
+    // Перезапускаем анимацию появления иконок при каждом новом поиске.
+    requestAnimationFrame(() => requestAnimationFrame(() => directory.classList.add('is-visible')));
   }
 
   function extractYoutubeVideoId(value) {
@@ -740,9 +754,8 @@
       await playYoutube(pastedVideoId, 'Видео YouTube', 'YouTube', true);
       return;
     }
-    lastSearchQuery = effectiveSearchQuery(rawQuery);
+    lastSearchQuery = rawQuery;
     renderServiceDirectory(lastSearchQuery);
-    $('#directoryTitle').textContent = 'Где искать';
     $('#discover').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Keep the existing embedded YouTube results when the owner has configured an API key.
@@ -852,11 +865,6 @@
     $('#profileForm').addEventListener('submit', saveProfile);
     $('#logoutButton').addEventListener('click', signOut);
     $('#profileButton').addEventListener('click', () => { updateProfileUI(); openModal('profileModal'); });
-    $$('.kind-chip').forEach((chip) => chip.addEventListener('click', () => {
-      searchKind = chip.dataset.kind || 'all';
-      $$('.kind-chip').forEach((item) => item.classList.toggle('selected', item === chip));
-      if ($('#searchInput').value.trim()) searchVideos($('#searchInput').value);
-    }));
     $('#searchForm').addEventListener('submit', (event) => { event.preventDefault(); searchVideos($('#searchInput').value); });
     $('#findFromPlayer').addEventListener('click', () => { $('#discover').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#searchInput').focus({ preventScroll: true }); });
     $('#inviteTop').addEventListener('click', () => shareRoom());
@@ -883,7 +891,6 @@
       navigator.serviceWorker.register('./sw.js').catch((error) => console.warn('SYNC offline cache unavailable:', error));
     }
     bindEvents();
-    renderServiceDirectory();
     if (!initializeAuthUI()) return;
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) setAuthStatus(error.message, true);
