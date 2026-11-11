@@ -7,12 +7,8 @@ create table if not exists public.sync_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text not null unique check (username ~ '^[a-z0-9_]{3,20}$'),
   display_name text not null check (char_length(display_name) between 2 and 24),
-  avatar_url text,
   created_at timestamptz not null default now()
 );
-
--- Safe migration for projects that already have the SYNC tables.
-alter table public.sync_profiles add column if not exists avatar_url text;
 
 create or replace function public.sync_create_profile_for_user()
 returns trigger
@@ -25,26 +21,12 @@ declare
   chosen_name text;
 begin
   chosen_username := lower(coalesce(new.raw_user_meta_data ->> 'username', 'user_' || substr(new.id::text, 1, 8)));
-  chosen_name := coalesce(
-    nullif(trim(new.raw_user_meta_data ->> 'display_name'), ''),
-    nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''),
-    nullif(trim(new.raw_user_meta_data ->> 'name'), ''),
-    nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
-    'Новый пользователь'
-  );
-  if char_length(chosen_name) < 2 then
-    chosen_name := 'Новый пользователь';
-  end if;
+  chosen_name := coalesce(nullif(trim(new.raw_user_meta_data ->> 'display_name'), ''), 'Новый пользователь');
   if chosen_username !~ '^[a-z0-9_]{3,20}$' then
     chosen_username := 'user_' || substr(new.id::text, 1, 8);
   end if;
-  insert into public.sync_profiles (id, username, display_name, avatar_url)
-  values (
-    new.id,
-    chosen_username,
-    left(chosen_name, 24),
-    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture')
-  )
+  insert into public.sync_profiles (id, username, display_name)
+  values (new.id, chosen_username, left(chosen_name, 24))
   on conflict (id) do nothing;
   return new;
 end;
@@ -274,45 +256,3 @@ drop policy if exists "SYNC signed-in users can publish online presence" on real
 create policy "SYNC signed-in users can publish online presence"
 on realtime.messages for insert to authenticated
 with check (extension = 'presence' and realtime.topic() = 'sync-online-presence');
-
--- 6) Public profile photos. Each signed-in user may manage files only in their own folder.
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('sync-avatars', 'sync-avatars', true, 3145728, array['image/jpeg', 'image/png', 'image/webp'])
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
-drop policy if exists "SYNC avatars are publicly readable" on storage.objects;
-create policy "SYNC avatars are publicly readable"
-on storage.objects for select
-using (bucket_id = 'sync-avatars');
-
-drop policy if exists "Users upload their own SYNC avatar" on storage.objects;
-create policy "Users upload their own SYNC avatar"
-on storage.objects for insert to authenticated
-with check (
-  bucket_id = 'sync-avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-);
-
-drop policy if exists "Users update their own SYNC avatar" on storage.objects;
-create policy "Users update their own SYNC avatar"
-on storage.objects for update to authenticated
-using (
-  bucket_id = 'sync-avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-)
-with check (
-  bucket_id = 'sync-avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-);
-
-drop policy if exists "Users delete their own SYNC avatar" on storage.objects;
-create policy "Users delete their own SYNC avatar"
-on storage.objects for delete to authenticated
-using (
-  bucket_id = 'sync-avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-);
-

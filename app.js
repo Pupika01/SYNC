@@ -4,39 +4,19 @@
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const config = window.SYNC_CONFIG || {};
-  const serviceGroups = [
-    {
-      title: 'Видеоплатформы',
-      services: [
-        { id: 'youtube', name: 'YouTube', mark: '▶', brand: 'youtube', note: 'Видео, каналы и шоу', domain: 'youtube.com', home: 'https://www.youtube.com/', search: q => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
-        { id: 'rutube', name: 'RUTUBE', mark: 'R', brand: 'rutube', note: 'Видео и телешоу', domain: 'rutube.ru', home: 'https://rutube.ru/', search: q => `https://rutube.ru/search/?query=${encodeURIComponent(q)}` },
-        { id: 'vkvideo', name: 'VK Видео', mark: 'VK', brand: 'vkvideo', note: 'Видео, клипы и трансляции', domain: 'vkvideo.ru', home: 'https://vkvideo.ru/', search: q => `https://vkvideo.ru/?q=${encodeURIComponent(q)}` },
-        { id: 'dzen', name: 'Дзен Видео', mark: 'Д', brand: 'dzen', note: 'Видео и авторские каналы', domain: 'dzen.ru', home: 'https://dzen.ru/video', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:dzen.ru/video ${q}`)}` }
-      ]
-    },
-    {
-      title: 'Онлайн-кинотеатры',
-      services: [
-        { id: 'kinopoisk', name: 'Кинопоиск', mark: 'К', brand: 'kinopoisk', note: 'Фильмы, сериалы и подборки', domain: 'kinopoisk.ru', home: 'https://hd.kinopoisk.ru/', search: q => `https://hd.kinopoisk.ru/search?text=${encodeURIComponent(q)}` },
-        { id: 'ivi', name: 'Иви', mark: 'ivi', brand: 'ivi', note: 'Фильмы и сериалы', domain: 'ivi.ru', home: 'https://www.ivi.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:ivi.ru ${q}`)}` },
-        { id: 'okko', name: 'Okko', mark: 'okko', brand: 'okko', note: 'Кино, сериалы и спорт', domain: 'okko.tv', home: 'https://okko.tv/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:okko.tv ${q}`)}` },
-        { id: 'wink', name: 'Wink', mark: 'W', brand: 'wink', note: 'Фильмы, сериалы и ТВ', domain: 'wink.ru', home: 'https://wink.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:wink.ru ${q}`)}` },
-        { id: 'start', name: 'START', mark: 'S', brand: 'start', note: 'Сериалы и оригинальные проекты', domain: 'start.ru', home: 'https://start.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:start.ru ${q}`)}` },
-        { id: 'premier', name: 'PREMIER', mark: 'P', brand: 'premier', note: 'Шоу, фильмы и сериалы', domain: 'premier.one', home: 'https://premier.one/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:premier.one ${q}`)}` },
-        { id: 'kion', name: 'KION', mark: 'K', brand: 'kion', note: 'Кино, сериалы и ТВ', domain: 'kion.ru', home: 'https://kion.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:kion.ru ${q}`)}` },
-        { id: 'netflix', name: 'Netflix', mark: 'N', brand: 'netflix', note: 'Фильмы и сериалы', domain: 'netflix.com', home: 'https://www.netflix.com/', search: q => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
-        { id: 'appletv', name: 'Apple TV+', mark: 'tv+', brand: 'appletv', note: 'Оригинальные фильмы и сериалы', domain: 'tv.apple.com', home: 'https://tv.apple.com/', search: q => `https://tv.apple.com/search?term=${encodeURIComponent(q)}` },
-        { id: 'primevideo', name: 'Prime Video', mark: 'prime', brand: 'primevideo', note: 'Фильмы и сериалы Amazon', domain: 'primevideo.com', home: 'https://www.primevideo.com/', search: q => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(q)}` },
-        { id: 'disney', name: 'Disney+', mark: 'D+', brand: 'disney', note: 'Фильмы и сериалы Disney', domain: 'disneyplus.com', home: 'https://www.disneyplus.com/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:disneyplus.com ${q}`)}` },
-        { id: 'amediateka', name: 'Амедиатека', mark: 'A', brand: 'amediateka', note: 'Сериалы и кино', domain: 'amediateka.ru', home: 'https://amediateka.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:amediateka.ru ${q}`)}` }
-      ]
-    }
-  ];
+  const providers = {
+    youtube: { name: 'YouTube', description: 'Ищи видео прямо здесь. Выбранный ролик откроется в общей комнате.' },
+    rutube: { name: 'RUTUBE', description: 'Ищи публичные видео и запускай встроенный плеер для всех участников.' },
+    vk: { name: 'VK Видео', description: 'Подключение встроенного каталога VK Видео пока готовится.' },
+    netflix: { name: 'Netflix', description: 'Netflix использует защищённый плеер, который нельзя встроить в сторонний сайт.' },
+    kinopoisk: { name: 'Кинопоиск', description: 'Кинопоиск использует защищённый плеер, который нельзя встроить в сторонний сайт.' }
+  };
+
   let supabase = null;
   let authUser = null;
   let profile = null;
   let authMode = 'signin';
-  let lastSearchQuery = '';
+  let provider = 'youtube';
   let currentRoom = null;
   let inviteToken = null;
   let roomChannel = null;
@@ -44,39 +24,31 @@
   let friends = [];
   let incomingRequests = [];
   let onlineIds = new Set();
-  let onlineProfiles = new Map();
   let currentVideo = null;
+  let youtubePlayer = null;
+  let youtubeApiPromise = null;
+  let rutubeFrame = null;
+  let rutubeReady = false;
+  let pendingRemotePlayback = null;
+  let suppressPlaybackBroadcastUntil = 0;
+  let roomOwnerId = null;
+  let syncTimer = null;
+  let lastRutubePosition = 0;
+  let lastRutubeSyncAt = 0;
   let toastTimer = null;
   let bootstrapping = false;
-  let profileHasAvatarColumn = true;
   const presenceSessionId = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 
   const initials = (name) => (String(name || '?').trim().replace(/^@/, '').slice(0, 1) || '?').toLocaleUpperCase('ru-RU');
-  const avatarUrl = (person = profile) => person?.avatar_url || person?.avatar || person?.user_metadata?.avatar_url || person?.user_metadata?.picture || (person === profile ? authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture : '') || '';
-
-  function paintAvatar(node, name, url = '') {
+  function setAvatar(node, url, name) {
     if (!node) return;
     node.replaceChildren();
     if (url) {
       const image = document.createElement('img');
-      image.src = url;
-      image.alt = '';
-      image.loading = 'lazy';
-      image.referrerPolicy = 'no-referrer';
-      image.addEventListener('error', () => { image.remove(); node.textContent = initials(name); }, { once: true });
+      image.className = 'avatar-image'; image.alt = ''; image.loading = 'lazy'; image.src = url;
+      image.onerror = () => { image.remove(); node.textContent = initials(name); };
       node.append(image);
-    } else {
-      node.textContent = initials(name);
-    }
-  }
-
-  function presenceProfile() {
-    return {
-      user_id: authUser.id,
-      username: profile.username,
-      display_name: profile.display_name,
-      avatar_url: avatarUrl()
-    };
+    } else node.textContent = initials(name);
   }
   const showToast = (message) => {
     const toast = $('#toast');
@@ -88,40 +60,10 @@
   const setAuthStatus = (message, isError = false) => {
     const node = $('#authStatus');
     node.textContent = message || '';
-    node.style.color = isError ? '#c24f5d' : '#9c7b47';
+    node.style.color = isError ? '#ff9a9f' : '#f0c58d';
   };
   const displayName = () => profile?.display_name || authUser?.email?.split('@')[0] || 'Гость';
   const cleanUsername = (value) => String(value || '').trim().replace(/^@/, '').toLowerCase();
-
-  function isMissingAvatarColumn(error) {
-    const message = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`;
-    return /avatar_url/i.test(message) && /(does not exist|schema cache|could not find|unknown column)/i.test(message);
-  }
-
-  // Старые версии базы SYNC могут ещё не содержать avatar_url. Это не должно
-  // блокировать вход: повторяем запрос только с базовыми полями профиля.
-  async function getProfileById(userId) {
-    let result = await supabase.from('sync_profiles')
-      .select('id,username,display_name,avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
-    profileHasAvatarColumn = true;
-    if (isMissingAvatarColumn(result.error)) {
-      profileHasAvatarColumn = false;
-      result = await supabase.from('sync_profiles')
-        .select('id,username,display_name')
-        .eq('id', userId)
-        .maybeSingle();
-      if (result.data) result.data.avatar_url = null;
-    }
-    return result;
-  }
-
-  async function queryWithOptionalAvatar(queryFactory) {
-    let result = await queryFactory(true);
-    if (isMissingAvatarColumn(result.error)) result = await queryFactory(false);
-    return result;
-  }
 
   function showAuthGate() {
     $('#authGate').classList.remove('hidden');
@@ -156,7 +98,7 @@
     const signup = authMode === 'signup';
     $('#signupFields').classList.toggle('hidden', !signup);
     $('#authTitle').textContent = signup ? 'Создать аккаунт' : 'С возвращением';
-    $('#authSubtitle').textContent = signup ? 'Создай пространство для своих людей и любимых видео.' : 'Твои люди. Ваше кино. Одно общее пространство.';
+    $('#authSubtitle').textContent = signup ? 'Твой аккаунт, друзья и комнаты — в одном месте.' : 'Войди, чтобы смотреть вместе с друзьями.';
     $('#authSubmit').textContent = signup ? 'Зарегистрироваться' : 'Войти';
     $('#authSwitchText').textContent = signup ? 'Уже есть аккаунт?' : 'Впервые в SYNC?';
     $('#authSwitch').textContent = signup ? 'Войти' : 'Создать аккаунт';
@@ -164,26 +106,24 @@
     $('#authUsername').required = signup;
     $('#authDisplayName').required = signup;
     setAuthStatus('');
-    $('#googleAuth').classList.remove('hidden');
   }
 
   async function signInWithGoogle() {
     if (!supabase) return;
-    const button = $('#googleAuth');
+    const button = $('#googleSignIn');
     button.disabled = true;
     button.textContent = 'Переходим к Google…';
-    setAuthStatus('');
     try {
-      const redirectUrl = new URL(location.href);
+      const redirectTo = location.href;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: redirectUrl.toString(), queryParams: { prompt: 'select_account' } }
+        options: { redirectTo, queryParams: { prompt: 'select_account' } }
       });
       if (error) throw error;
     } catch (error) {
-      setAuthStatus(error.message || 'Не удалось открыть вход через Google.', true);
+      setAuthStatus(`Не удалось начать вход через Google: ${error.message}`, true);
       button.disabled = false;
-      button.innerHTML = '<span class="google-mark" aria-hidden="true">G</span> Продолжить с Google';
+      button.innerHTML = '<span class="google-g">G</span> Продолжить с Google';
     }
   }
 
@@ -233,20 +173,12 @@
     bootstrapping = true;
     authUser = user;
     try {
-      const { data, error } = await getProfileById(user.id);
-      if (error) throw new Error(`Не удалось загрузить профиль SYNC. Проверь, что SQL проекта выполнен. (${error.message})`);
-      if (!data) throw new Error('Для этого аккаунта ещё не создан профиль SYNC. Выполни supabase.sql в Supabase → SQL Editor, затем обнови страницу.');
+      const { data, error } = await supabase.from('sync_profiles')
+        .select('id, username, display_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      if (error) throw new Error(`Профиль не найден. Выполни SQL из supabase.sql. (${error.message})`);
       profile = data;
-      const providerAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
-      if (profileHasAvatarColumn && !profile.avatar_url && providerAvatar) {
-        const avatarUpdate = await supabase.from('sync_profiles')
-          .update({ avatar_url: providerAvatar })
-          .eq('id', user.id)
-          .select('id,username,display_name,avatar_url')
-          .maybeSingle();
-        if (!avatarUpdate.error && avatarUpdate.data) profile = avatarUpdate.data;
-        else if (isMissingAvatarColumn(avatarUpdate.error)) profileHasAvatarColumn = false;
-      }
       updateProfileUI();
       hideAuthGate();
       await Promise.all([loadFriends(), loadIncomingRequests()]);
@@ -261,21 +193,40 @@
   }
 
   function updateProfileUI() {
-    paintAvatar($('#profileButton'), displayName(), avatarUrl());
-    paintAvatar($('#profileAvatarPreview'), displayName(), avatarUrl());
+    setAvatar($('#profileButton'), profile?.avatar_url, displayName());
     $('#profileDisplayName').value = profile?.display_name || '';
     $('#profileUsername').value = profile?.username || '';
     $('#profileEmail').textContent = authUser?.email || '';
+    $('#avatarPreview').src = profile?.avatar_url || 'icon.svg';
+  }
+
+  async function uploadAvatar(file) {
+    if (!file || !supabase || !authUser) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return showToast('Выбери JPG, PNG или WebP');
+    if (file.size > 5 * 1024 * 1024) return showToast('Фото должно быть меньше 5 МБ');
+    const extension = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+    const path = `${authUser.id}/${Date.now()}.${extension}`;
+    showToast('Загружаем фото…');
+    const { error: uploadError } = await supabase.storage.from('sync-avatars').upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+    if (uploadError) return showToast(`Не удалось загрузить фото: ${uploadError.message}`);
+    const { data } = supabase.storage.from('sync-avatars').getPublicUrl(path);
+    const avatarUrl = data?.publicUrl;
+    const { data: updated, error } = await supabase.from('sync_profiles').update({ avatar_url: avatarUrl }).eq('id', authUser.id).select('id,username,display_name,avatar_url').single();
+    if (error) return showToast(`Фото загружено, но профиль не обновился: ${error.message}`);
+    profile = updated; updateProfileUI();
+    if (roomChannel) await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url });
+    if (onlineChannel) await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url });
+    renderMembers(); showToast('Фото профиля обновлено');
   }
 
   async function signOut() {
     if (!supabase) return;
     if (roomChannel) await supabase.removeChannel(roomChannel);
     if (onlineChannel) await supabase.removeChannel(onlineChannel);
+    if (syncTimer) clearInterval(syncTimer);
+    syncTimer = null;
     roomChannel = null;
     onlineChannel = null;
-    onlineIds = new Set();
-    onlineProfiles = new Map();
     authUser = null;
     profile = null;
     friends = [];
@@ -295,82 +246,16 @@
     const { data, error } = await supabase.from('sync_profiles')
       .update({ display_name: name, username })
       .eq('id', authUser.id)
-      .select('id,username,display_name')
+      .select('id,username,display_name,avatar_url')
       .single();
     if (error) return showToast(error.code === '23505' ? 'Этот ник уже занят' : error.message);
-    profile = { ...data, avatar_url: profile?.avatar_url || null };
+    profile = data;
     updateProfileUI();
     $('#profileModal').classList.add('hidden');
-    if (roomChannel) await roomChannel.track(presenceProfile());
-    if (onlineChannel) await onlineChannel.track(presenceProfile());
+    if (roomChannel) await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null });
+    if (onlineChannel) await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null });
     renderMembers();
     showToast('Профиль сохранён');
-  }
-
-  async function uploadAvatar(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      showToast('Подойдёт JPG, PNG или WebP');
-      event.target.value = '';
-      return;
-    }
-    if (file.size > 3 * 1024 * 1024) {
-      showToast('Фото должно весить не больше 3 МБ');
-      event.target.value = '';
-      return;
-    }
-    if (!profileHasAvatarColumn) {
-      showToast('Чтобы включить фото профиля, один раз выполни supabase.sql в Supabase → SQL Editor.');
-      event.target.value = '';
-      return;
-    }
-
-    const uploadButton = $('#chooseAvatar');
-    uploadButton.disabled = true;
-    uploadButton.textContent = 'Загружаем…';
-    try {
-      const extension = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
-      const objectPath = `${authUser.id}/${globalThis.crypto?.randomUUID?.() || Date.now()}.${extension}`;
-      const storage = supabase.storage.from('sync-avatars');
-      const { error: uploadError } = await storage.upload(objectPath, file, {
-        cacheControl: '3600',
-        contentType: file.type,
-        upsert: false
-      });
-      if (uploadError) throw uploadError;
-      const { data: publicData } = storage.getPublicUrl(objectPath);
-      const { data, error } = await supabase.from('sync_profiles')
-        .update({ avatar_url: publicData.publicUrl })
-        .eq('id', authUser.id)
-        .select('id,username,display_name,avatar_url')
-        .single();
-      if (error) throw error;
-      const previousUrl = profile?.avatar_url || '';
-      profile = data;
-      updateProfileUI();
-      if (roomChannel) await roomChannel.track(presenceProfile());
-      if (onlineChannel) await onlineChannel.track(presenceProfile());
-      renderMembers();
-      renderFriends();
-      const storagePrefix = '/storage/v1/object/public/sync-avatars/';
-      const oldPathStart = previousUrl.indexOf(storagePrefix);
-      if (oldPathStart >= 0) {
-        const oldPath = decodeURIComponent(previousUrl.slice(oldPathStart + storagePrefix.length).split('?')[0]);
-        if (oldPath && oldPath !== objectPath) await storage.remove([oldPath]);
-      }
-      showToast('Фото профиля обновлено');
-    } catch (error) {
-      const message = error.message || 'Не удалось загрузить фото';
-      showToast(message.includes('Bucket not found') || message.includes('sync-avatars')
-        ? 'Выполни обновлённый supabase.sql — он создаст хранилище фото.'
-        : message);
-    } finally {
-      uploadButton.disabled = false;
-      uploadButton.textContent = 'Загрузить фото';
-      event.target.value = '';
-    }
   }
 
   function setRoomUrl(roomId, token) {
@@ -441,19 +326,31 @@
       .on('presence', { event: 'join' }, renderMembers)
       .on('presence', { event: 'leave' }, renderMembers)
       .on('broadcast', { event: 'chat' }, ({ payload }) => {
-        if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '', false, payload?.avatar_url || '');
+        if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '');
       })
-      .on('broadcast', { event: 'video' }, ({ payload }) => {
-        if (payload?.user_id !== authUser.id && payload?.videoId) {
-          playYoutube(payload.videoId, payload.title || 'Видео YouTube', payload.channelTitle || 'YouTube', false);
-          showToast('Друг выбрал видео');
+      .on('broadcast', { event: 'video' }, async ({ payload }) => {
+        if (payload?.user_id !== authUser.id && payload?.videoId && ['youtube', 'rutube'].includes(payload.provider)) {
+          suppressPlaybackBroadcastUntil = Date.now() + 5000;
+          await playSelectedVideo(payload.provider, payload.videoId, payload.title || 'Видео', payload.channelTitle || providers[payload.provider].name, false, { state: 'playing', time: payload.time || 0 });
+          showToast('Друг выбрал видео — запускаем вместе');
+        }
+      })
+      .on('broadcast', { event: 'playback' }, ({ payload }) => {
+        if (payload?.user_id !== authUser.id && payload?.provider && payload?.videoId === currentVideo?.videoId) {
+          suppressPlaybackBroadcastUntil = Date.now() + 1800;
+          applyPlaybackState(payload);
         }
       });
+    const { data: roomInfo } = await supabase.from('sync_rooms').select('owner_id').eq('id', currentRoom).maybeSingle();
+    roomOwnerId = roomInfo?.owner_id || null;
+    if (syncTimer) clearInterval(syncTimer);
+    syncTimer = setInterval(broadcastRoomHeartbeat, 7000);
     roomChannel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await roomChannel.track(presenceProfile());
+        await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null });
         renderMembers();
         $('#syncLabel').textContent = 'Комната синхронизирована';
+        loadPersistedRoomState();
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         $('#syncLabel').textContent = 'Нет соединения';
       }
@@ -467,13 +364,13 @@
     const state = roomChannel?.presenceState?.() || {};
     const participants = Object.values(state).flat().filter((person) => person?.user_id);
     if (!participants.some((person) => person.user_id === authUser?.id) && authUser) {
-      participants.unshift({ user_id: authUser.id, display_name: displayName(), avatar_url: avatarUrl() });
+      participants.unshift({ user_id: authUser.id, display_name: displayName() });
     }
     const unique = [...new Map(participants.map((person) => [person.user_id, person])).values()];
     unique.forEach((person) => {
       const mine = person.user_id === authUser?.id;
       const row = document.createElement('div'); row.className = 'person-row';
-      const avatar = document.createElement('div'); avatar.className = `person-avatar${mine ? ' self-avatar' : ''}`; paintAvatar(avatar, person.display_name, person.avatar_url || (mine ? avatarUrl() : ''));
+      const avatar = document.createElement('div'); avatar.className = `person-avatar${mine ? ' self-avatar' : ''}`; setAvatar(avatar, person.avatar_url, person.display_name);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = mine ? 'Вы' : (person.display_name || person.username || 'Участник');
       const role = document.createElement('span'); role.textContent = mine ? 'Вы здесь' : 'Смотрит вместе с вами';
@@ -491,28 +388,24 @@
     });
     onlineChannel.on('presence', { event: 'sync' }, () => {
       const state = onlineChannel.presenceState();
-      const peers = Object.values(state).flat().filter((item) => item?.user_id);
-      onlineIds = new Set(peers.map((item) => item.user_id));
-      onlineProfiles = new Map(peers.map((item) => [item.user_id, item]));
+      onlineIds = new Set(Object.values(state).flat().map((item) => item?.user_id).filter(Boolean));
       renderFriends();
     });
     onlineChannel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await onlineChannel.track(presenceProfile());
+        await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null });
         const state = onlineChannel.presenceState();
-        const peers = Object.values(state).flat().filter((item) => item?.user_id);
-        onlineIds = new Set(peers.map((item) => item.user_id));
-        onlineProfiles = new Map(peers.map((item) => [item.user_id, item]));
+        onlineIds = new Set(Object.values(state).flat().map((item) => item?.user_id).filter(Boolean));
         renderFriends();
       }
     });
   }
 
   async function loadFriends() {
-    const { data, error } = await queryWithOptionalAvatar((withAvatar) => supabase.from('sync_friend_requests')
-      .select(`id,from_user,to_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name${withAvatar ? ',avatar_url' : ''}),to_profile:sync_profiles!sync_friend_requests_to_user_fkey(id,username,display_name${withAvatar ? ',avatar_url' : ''})`)
+    const { data, error } = await supabase.from('sync_friend_requests')
+      .select('id,from_user,to_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name,avatar_url),to_profile:sync_profiles!sync_friend_requests_to_user_fkey(id,username,display_name,avatar_url)')
       .eq('status', 'accepted')
-      .or(`from_user.eq.${authUser.id},to_user.eq.${authUser.id}`));
+      .or(`from_user.eq.${authUser.id},to_user.eq.${authUser.id}`);
     if (error) { showToast(`Не загрузились друзья: ${error.message}`); return; }
     friends = (data || []).map((row) => ({
       requestId: row.id,
@@ -523,11 +416,11 @@
   }
 
   async function loadIncomingRequests() {
-    const { data, error } = await queryWithOptionalAvatar((withAvatar) => supabase.from('sync_friend_requests')
-      .select(`id,from_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name${withAvatar ? ',avatar_url' : ''})`)
+    const { data, error } = await supabase.from('sync_friend_requests')
+      .select('id,from_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name,avatar_url)')
       .eq('to_user', authUser.id)
       .eq('status', 'pending')
-      .order('created_at', { ascending: false }));
+      .order('created_at', { ascending: false });
     if (error) { showToast(`Не загрузились заявки: ${error.message}`); return; }
     incomingRequests = data || [];
     renderIncomingRequests();
@@ -544,7 +437,7 @@
     }
     friends.forEach((friend) => {
       const row = document.createElement('div'); row.className = 'friend-row';
-      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, friend.display_name || friend.username, onlineProfiles.get(friend.id)?.avatar_url || friend.avatar_url);
+      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, friend.avatar_url, friend.display_name || friend.username);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = friend.display_name || friend.username;
       const handle = document.createElement('span'); handle.className = 'friend-state'; handle.textContent = `@${friend.username}`;
@@ -574,18 +467,18 @@
     }
     box.className = 'modal-list';
     const loading = document.createElement('div'); loading.className = 'modal-empty'; loading.textContent = 'Ищем…'; box.append(loading);
-    const { data, error } = await queryWithOptionalAvatar((withAvatar) => supabase.from('sync_profiles')
-      .select(`id,username,display_name${withAvatar ? ',avatar_url' : ''}`)
+    const { data, error } = await supabase.from('sync_profiles')
+      .select('id,username,display_name,avatar_url')
       .ilike('username', `${query}%`)
       .neq('id', authUser.id)
-      .limit(8));
+      .limit(8);
     box.replaceChildren();
     if (error) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = error.message; box.append(msg); return; }
     if (!data?.length) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = 'Никого не нашли. Проверь написание.'; box.append(msg); return; }
     data.forEach((person) => {
       const existing = friends.some((friend) => friend.id === person.id);
       const item = document.createElement('div'); item.className = 'modal-user-row';
-      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, person.display_name, person.avatar_url);
+      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, person.avatar_url, person.display_name);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = person.display_name;
       const username = document.createElement('span'); username.textContent = `@${person.username}`;
@@ -614,7 +507,7 @@
     incomingRequests.forEach((request) => {
       const user = request.from_profile || {};
       const item = document.createElement('div'); item.className = 'modal-user-row';
-      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, user.display_name || user.username, user.avatar_url);
+      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; setAvatar(avatar, user.avatar_url, user.display_name || user.username);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = user.display_name || 'Пользователь';
       const username = document.createElement('span'); username.textContent = `@${user.username || ''}`;
@@ -636,11 +529,11 @@
     showToast(accept ? 'Заявка принята' : 'Заявка отклонена');
   }
 
-  function addChatMessage(name, message, mine = false, imageUrl = '') {
+  function addChatMessage(name, message, mine = false) {
     if (!message) return;
     const welcome = $('#chatMessages .chat-welcome'); if (welcome) welcome.remove();
     const wrap = document.createElement('div'); wrap.className = 'chat-message';
-    const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, name, imageUrl || (mine ? avatarUrl() : ''));
+    const avatar = document.createElement('div'); avatar.className = 'person-avatar'; avatar.textContent = initials(name);
     const body = document.createElement('div'); body.className = 'message-body';
     const meta = document.createElement('div'); meta.className = 'message-meta';
     const strong = document.createElement('strong'); strong.textContent = mine ? 'Вы' : name;
@@ -651,167 +544,288 @@
   }
 
   async function sendChatMessage(message) {
-    addChatMessage(displayName(), message, true, avatarUrl());
-    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message, avatar_url: avatarUrl() } });
+    addChatMessage(displayName(), message, true);
+    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message } });
   }
 
-  function makeServiceCard(service, query, order = 0) {
-    const card = document.createElement('a');
-    card.className = `service-card service-${service.brand}`;
-    card.href = query ? service.search(query) : service.home;
-    card.target = '_blank';
-    card.rel = 'noopener noreferrer';
-    card.setAttribute('aria-label', `Искать «${query}» на ${service.name}`);
-    card.style.setProperty('--fly-delay', `${Math.min(order, 30) * 55}ms`);
-
-    const mark = document.createElement('span');
-    mark.className = `service-mark mark-${service.brand}`;
-    mark.setAttribute('aria-hidden', 'true');
-
-    // Настоящий favicon сервиса, а не текстовая буква-заглушка.
-    const logo = document.createElement('img');
-    logo.className = 'service-logo';
-    logo.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(service.domain)}&sz=128`;
-    logo.alt = '';
-    logo.loading = 'lazy';
-    logo.decoding = 'async';
-    logo.referrerPolicy = 'no-referrer';
-    logo.addEventListener('error', () => {
-      logo.remove();
-      mark.textContent = service.mark;
-      mark.classList.add('service-mark-fallback');
-    }, { once: true });
-    mark.append(logo);
-
-    const copy = document.createElement('span');
-    copy.className = 'service-copy';
-    const title = document.createElement('strong');
-    title.textContent = service.name;
-    const note = document.createElement('span');
-    note.textContent = service.note;
-    copy.append(title, note);
-
-    const action = document.createElement('span');
-    action.className = 'service-action';
-    action.textContent = 'Открыть ↗';
-    card.append(mark, copy, action);
-    return card;
+  function selectProvider(name) {
+    provider = providers[name] ? name : 'youtube';
+    $$('.provider-card').forEach((card) => card.classList.toggle('selected', card.dataset.provider === provider));
+    $('#providerWorkspace').classList.remove('hidden');
+    $('#providerTitle').textContent = providers[provider].name;
+    $('#providerDescription').textContent = providers[provider].description;
+    $('#providerSearchForm').classList.toggle('hidden', !['youtube', 'rutube'].includes(provider));
+    $('#searchResults').replaceChildren();
+    const message = $('#providerMessage');
+    message.classList.remove('hidden');
+    if (provider === 'youtube') {
+      message.textContent = config.YOUTUBE_API_KEY
+        ? 'Ищи видео здесь. Нажми «Смотреть вместе» — ролик появится у всех в комнате.'
+        : 'Для поиска YouTube внутри SYNC нужен API key YouTube Data API. Плеер и синхронизация уже готовы; добавь ключ в config.js.';
+      $('#providerSearchInput').placeholder = 'Что найти на YouTube?';
+    } else if (provider === 'rutube') {
+      message.textContent = 'Ищи публичные видео RUTUBE. Поиск использует открытый endpoint площадки и может временно ограничиваться самим RUTUBE.';
+      $('#providerSearchInput').placeholder = 'Что найти на RUTUBE?';
+    } else {
+      const messages = {
+        vk: 'Встроенный поиск VK Видео пока не подключён. Внешнюю страницу не открываем: добавим официальный API/виджет, когда будет доступ к интеграции.',
+        netflix: 'Netflix не разрешает сторонним сайтам встраивать защищённый видеоплеер. Поэтому нельзя запустить один и тот же фильм внутри SYNC на двух устройствах через обычный iframe.',
+        kinopoisk: 'Кинопоиск использует защищённое воспроизведение и не предоставляет SYNC открытый плеер для встраивания. Внешнюю вкладку без твоего согласия не открываем.'
+      };
+      message.textContent = messages[provider];
+    }
+    $('#providerWorkspace').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function renderServiceDirectory(query = '') {
-    const directory = $('#providerDirectory');
-    if (!directory) return;
-    directory.replaceChildren();
-    const normalizedQuery = String(query || '').trim();
-    const head = $('#directoryHead');
-    const footnote = $('#directoryFootnote');
-    $('#directoryTitle').textContent = 'Выбери, где смотреть';
-    $('#directoryNote').textContent = normalizedQuery;
-
-    let order = 0;
-    serviceGroups.forEach((group) => {
-      const section = document.createElement('section');
-      section.className = 'service-group';
-      const heading = document.createElement('h4');
-      heading.textContent = group.title;
-      const grid = document.createElement('div');
-      grid.className = 'service-grid';
-      group.services.forEach((service) => grid.append(makeServiceCard(service, normalizedQuery, order++)));
-      section.append(heading, grid);
-      directory.append(section);
-    });
-
-    head.hidden = false;
-    footnote.hidden = false;
-    directory.hidden = false;
-    directory.classList.remove('is-visible');
-    // Перезапускаем анимацию появления иконок при каждом новом поиске.
-    requestAnimationFrame(() => requestAnimationFrame(() => directory.classList.add('is-visible')));
-  }
-
-  function extractYoutubeVideoId(value) {
-    const raw = String(value || '').trim();
-    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
-    try {
-      const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
-      const url = new URL(normalized);
-      const host = url.hostname.replace(/^www\./, '').toLowerCase();
-      if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || '';
-      if (host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com')) {
-        const fromQuery = url.searchParams.get('v');
-        if (fromQuery) return fromQuery;
-        return url.pathname.match(/\/(?:shorts|embed|live)\/([a-zA-Z0-9_-]{11})/)?.[1] || '';
-      }
-    } catch (_) {}
-    return '';
+  function renderSearchNotice(message) {
+    const box = $('#searchResults'); box.replaceChildren();
+    const empty = document.createElement('div'); empty.className = 'search-empty'; empty.textContent = message; box.append(empty);
   }
 
   async function searchVideos(query) {
-    const rawQuery = String(query || '').trim();
-    if (!rawQuery) { $('#searchInput').focus(); return; }
-    const pastedVideoId = extractYoutubeVideoId(rawQuery);
-    if (pastedVideoId) {
-      await playYoutube(pastedVideoId, 'Видео YouTube', 'YouTube', true);
-      return;
-    }
-    lastSearchQuery = rawQuery;
-    renderServiceDirectory(lastSearchQuery);
-    $('#discover').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    // Keep the existing embedded YouTube results when the owner has configured an API key.
-    if (config.YOUTUBE_API_KEY) {
-      $('#searchResults').classList.remove('hidden');
-      $('#searchResults').replaceChildren();
-      const loading = document.createElement('div');
-      loading.className = 'search-empty';
-      loading.textContent = 'Ищем видео на YouTube…';
-      $('#searchResults').append(loading);
+    const cleaned = query.trim();
+    if (!cleaned) { showToast('Напиши название видео'); $('#providerSearchInput').focus(); return; }
+    if (provider === 'youtube') {
+      if (!config.YOUTUBE_API_KEY) {
+        renderSearchNotice('Поиск YouTube пока не включён: добавь YOUTUBE_API_KEY в config.js из Google Cloud Console → YouTube Data API v3.');
+        return;
+      }
+      renderSearchNotice('Ищем видео на YouTube…');
       try {
         const endpoint = new URL('https://www.googleapis.com/youtube/v3/search');
-        endpoint.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '8', q: lastSearchQuery, key: config.YOUTUBE_API_KEY }).toString();
+        endpoint.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '10', q: cleaned, key: config.YOUTUBE_API_KEY }).toString();
         const response = await fetch(endpoint);
         const data = await response.json();
-        if (!response.ok) throw new Error(data?.error?.message || 'Не удалось выполнить поиск');
+        if (!response.ok) throw new Error(data?.error?.message || 'YouTube API вернул ошибку');
         renderYoutubeResults(data.items || []);
-      } catch (error) {
-        $('#searchResults').classList.add('hidden');
-        console.warn('SYNC YouTube search unavailable:', error);
-      }
-    } else {
-      $('#searchResults').classList.add('hidden');
+      } catch (error) { renderSearchNotice(`Поиск YouTube не сработал: ${error.message}`); }
+      return;
     }
+    if (provider === 'rutube') {
+      renderSearchNotice('Ищем видео на RUTUBE…');
+      try {
+        const endpoint = new URL('https://rutube.ru/api/search/video/');
+        endpoint.search = new URLSearchParams({ query: cleaned, page: '1', limit: '12' }).toString();
+        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`RUTUBE ответил ${response.status}`);
+        const data = await response.json();
+        const items = Array.isArray(data) ? data : (data.results || data.data || data.items || []);
+        renderRutubeResults(items);
+      } catch (error) {
+        renderSearchNotice(`RUTUBE не отдал результаты прямо в SYNC (${error.message}). Поиск этой площадки может ограничивать запросы с других сайтов. Встроенный плеер RUTUBE при этом поддерживается.`);
+      }
+    }
+  }
+
+  function renderVideoCards(items, kind) {
+    const box = $('#searchResults'); box.replaceChildren();
+    if (!items.length) return renderSearchNotice('Ничего не найдено. Попробуй другой запрос.');
+    items.forEach((item) => {
+      const card = document.createElement('article'); card.className = 'result-card';
+      const thumb = document.createElement('img'); thumb.className = 'result-thumb'; thumb.loading = 'lazy'; thumb.alt = ''; thumb.src = item.thumbnail || '';
+      const copy = document.createElement('div'); copy.className = 'result-copy';
+      const name = document.createElement('strong'); name.textContent = item.title || 'Видео';
+      const author = document.createElement('span'); author.textContent = item.author || (kind === 'youtube' ? 'YouTube' : 'RUTUBE');
+      const play = document.createElement('button'); play.className = 'result-play'; play.type = 'button'; play.textContent = 'Смотреть вместе';
+      play.addEventListener('click', () => playSelectedVideo(kind, item.id, item.title || 'Видео', item.author || providers[kind].name, true));
+      copy.append(name, author, play); card.append(thumb, copy); box.append(card);
+    });
   }
 
   function renderYoutubeResults(items) {
-    const box = $('#searchResults'); box.replaceChildren(); box.classList.remove('hidden');
-    const head = document.createElement('div'); head.className = 'results-head'; const title = document.createElement('strong'); title.textContent = `Результаты · ${items.length}`; head.append(title); box.append(head);
-    if (!items.length) { const empty = document.createElement('div'); empty.className = 'search-empty'; empty.textContent = 'Ничего не найдено. Попробуй другое название.'; box.append(empty); return; }
-    const grid = document.createElement('div'); grid.className = 'results-grid';
-    items.forEach((item) => {
-      const videoId = item?.id?.videoId; const snippet = item?.snippet || {}; if (!videoId) return;
-      const card = document.createElement('article'); card.className = 'result-card';
-      const thumb = document.createElement('img'); thumb.className = 'result-thumb'; thumb.loading = 'lazy'; thumb.alt = ''; thumb.src = snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || '';
-      const copy = document.createElement('div'); copy.className = 'result-copy';
-      const name = document.createElement('strong'); name.textContent = snippet.title || 'Видео YouTube';
-      const channelName = document.createElement('span'); channelName.textContent = snippet.channelTitle || 'YouTube';
-      const play = document.createElement('button'); play.className = 'result-play'; play.type = 'button'; play.textContent = 'Смотреть вместе';
-      play.addEventListener('click', () => playYoutube(videoId, snippet.title || 'YouTube-видео', snippet.channelTitle || 'YouTube', true));
-      copy.append(name, channelName, play); card.append(thumb, copy); grid.append(card);
-    });
-    box.append(grid);
+    const clean = (items || []).map((item) => ({
+      id: item?.id?.videoId,
+      title: item?.snippet?.title,
+      author: item?.snippet?.channelTitle,
+      thumbnail: item?.snippet?.thumbnails?.medium?.url || item?.snippet?.thumbnails?.default?.url || ''
+    })).filter((item) => item.id);
+    renderVideoCards(clean, 'youtube');
   }
 
-  async function playYoutube(videoId, title, channelTitle, broadcast = true) {
-    if (!/^[\w-]{6,}$/.test(videoId)) { showToast('Не удалось открыть это видео'); return; }
-    $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden');
+  function renderRutubeResults(items) {
+    const clean = (items || []).map((item) => ({
+      id: String(item?.id || item?.video_id || item?.videoId || ''),
+      title: item?.title || item?.name,
+      author: item?.author?.name || item?.author || item?.channel?.name || 'RUTUBE',
+      thumbnail: item?.thumbnail_url || item?.thumbnail || item?.picture || ''
+    })).filter((item) => /^[A-Za-z0-9_-]{8,}$/.test(item.id));
+    renderVideoCards(clean, 'rutube');
+  }
+
+  function loadYoutubeApi() {
+    if (window.YT?.Player) return Promise.resolve();
+    if (youtubeApiPromise) return youtubeApiPromise;
+    youtubeApiPromise = new Promise((resolve, reject) => {
+      const prior = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { try { prior?.(); } catch {} resolve(); };
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api'; script.async = true;
+      script.onerror = () => reject(new Error('Не удалось загрузить YouTube Player API'));
+      document.head.append(script);
+    });
+    return youtubeApiPromise;
+  }
+
+  async function playSelectedVideo(kind, videoId, title, channelTitle, broadcast = true, initial = {}) {
+    if (kind === 'youtube') return playYoutube(videoId, title, channelTitle, broadcast, initial);
+    if (kind === 'rutube') return playRutube(videoId, title, channelTitle, broadcast, initial);
+  }
+
+  async function announceVideo(kind, videoId, title, channelTitle) {
+    if (!roomChannel || !authUser) return;
+    const current = { provider: kind, videoId, title, channelTitle, state: 'playing', time: 0 };
+    await roomChannel.send({ type: 'broadcast', event: 'video', payload: { user_id: authUser.id, ...current } });
+    await savePersistedRoomState(current);
+  }
+
+  async function savePersistedRoomState(state) {
+    if (!supabase || !currentRoom || !authUser) return;
+    const { error } = await supabase.from('sync_room_state').upsert({
+      room_id: currentRoom,
+      current_video: state,
+      updated_by: authUser.id,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'room_id' });
+    if (error) console.warn('SYNC room state was not saved:', error.message);
+  }
+
+  async function loadPersistedRoomState() {
+    if (!supabase || !currentRoom) return;
+    const { data, error } = await supabase.from('sync_room_state').select('current_video').eq('room_id', currentRoom).maybeSingle();
+    if (error) { console.warn('SYNC room state could not be loaded:', error.message); return; }
+    const state = data?.current_video;
+    if (!state?.provider || !state?.videoId || !['youtube', 'rutube'].includes(state.provider)) return;
+    if (currentVideo?.videoId === state.videoId && currentVideo?.provider === state.provider) return;
+    suppressPlaybackBroadcastUntil = Date.now() + 5000;
+    await playSelectedVideo(state.provider, state.videoId, state.title || 'Видео', state.channelTitle || providers[state.provider].name, false, { state: state.state || 'playing', time: Number(state.time) || 0 });
+  }
+
+  async function playYoutube(videoId, title, channelTitle, broadcast = true, initial = {}) {
+    if (!/^[\w-]{6,}$/.test(videoId || '')) return showToast('Не удалось открыть это видео');
+    if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
+    if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
+    rutubeReady = false;
+    $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden');
     const wrap = $('#embedWrap'); wrap.classList.remove('hidden'); wrap.replaceChildren();
-    const frame = document.createElement('iframe');
-    frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=0&rel=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
-    frame.title = title; frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
-    wrap.append(frame); currentVideo = { videoId, title, channelTitle };
-    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · YouTube`; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Видео выбрано';
-    if (broadcast && roomChannel) await roomChannel.send({ type: 'broadcast', event: 'video', payload: { user_id: authUser.id, videoId, title, channelTitle } });
+    const target = document.createElement('div'); target.id = 'ytPlayer'; wrap.append(target);
+    currentVideo = { provider: 'youtube', videoId, title, channelTitle };
+    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · YouTube`; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем YouTube…';
+    if (broadcast) await announceVideo('youtube', videoId, title, channelTitle);
+    try {
+      await loadYoutubeApi();
+      youtubePlayer = new window.YT.Player('ytPlayer', {
+        host: 'https://www.youtube-nocookie.com',
+        videoId,
+        playerVars: { autoplay: 1, playsinline: 1, rel: 0, origin: location.origin },
+        events: {
+          onReady: (event) => {
+            if (Number(initial.time) > 0) event.target.seekTo(Number(initial.time), true);
+            if (initial.state !== 'paused') event.target.playVideo();
+            $('#syncLabel').textContent = 'YouTube подключён';
+          },
+          onStateChange: (event) => {
+            if (Date.now() < suppressPlaybackBroadcastUntil) return;
+            const state = event.data;
+            const mapped = state === window.YT.PlayerState.PLAYING ? 'playing' : state === window.YT.PlayerState.PAUSED ? 'paused' : state === window.YT.PlayerState.ENDED ? 'ended' : null;
+            if (mapped) broadcastPlayback('youtube', mapped, event.target.getCurrentTime?.() || 0);
+          },
+          onAutoplayBlocked: () => $('#playerGesture').classList.remove('hidden'),
+          onError: (event) => { $('#syncLabel').textContent = 'Видео недоступно'; showToast(`YouTube: ошибка плеера ${event.data}`); }
+        }
+      });
+    } catch (error) { $('#playerError').textContent = error.message; $('#playerError').classList.remove('hidden'); }
     $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function playRutube(videoId, title, channelTitle, broadcast = true, initial = {}) {
+    if (!/^[A-Za-z0-9_-]{8,}$/.test(videoId || '')) return showToast('Не удалось распознать видео RUTUBE');
+    if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
+    if (rutubeFrame) rutubeFrame.remove();
+    rutubeReady = false;
+    $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden');
+    const wrap = $('#embedWrap'); wrap.classList.remove('hidden'); wrap.replaceChildren();
+    const frame = document.createElement('iframe'); frame.id = 'rutubePlayer'; frame.title = title; frame.allow = 'autoplay; clipboard-write; fullscreen; picture-in-picture'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.src = `https://rutube.ru/play/embed/${encodeURIComponent(videoId)}?skinColor=8b48ff&getPlayOptions=title,thumbnail_url&autostartmute=true`;
+    wrap.append(frame); rutubeFrame = frame;
+    currentVideo = { provider: 'rutube', videoId, title, channelTitle };
+    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · RUTUBE`; $('#videoCover').textContent = 'R'; $('#syncLabel').textContent = 'Подключаем RUTUBE…';
+    pendingRemotePlayback = initial;
+    if (broadcast) await announceVideo('rutube', videoId, title, channelTitle);
+    $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function sendRutubeCommand(type, data = {}) {
+    if (!rutubeFrame?.contentWindow || !rutubeReady) return;
+    rutubeFrame.contentWindow.postMessage(JSON.stringify({ type, data }), 'https://rutube.ru');
+  }
+
+  function handleRutubeMessage(event) {
+    if (event.origin !== 'https://rutube.ru' || !rutubeFrame || event.source !== rutubeFrame.contentWindow) return;
+    let message = event.data;
+    if (typeof message === 'string') { try { message = JSON.parse(message); } catch { return; } }
+    if (!message || typeof message !== 'object') return;
+    if (message.type === 'player:ready') {
+      rutubeReady = true; $('#syncLabel').textContent = 'RUTUBE подключён';
+      if (pendingRemotePlayback) applyPlaybackState({ ...pendingRemotePlayback, provider: 'rutube' });
+      pendingRemotePlayback = null;
+      return;
+    }
+    if (message.type === 'player:changeState') {
+      if (Date.now() < suppressPlaybackBroadcastUntil) return;
+      const state = message.data?.state;
+      if (state === 'playing' || state === 'paused' || state === 'stopped') broadcastPlayback('rutube', state, lastRutubePosition);
+    }
+    if (message.type === 'player:currentTime') {
+      const nextPosition = Number(message.data?.time) || 0;
+      const previousPosition = lastRutubePosition;
+      lastRutubePosition = nextPosition;
+      if (previousPosition > 0 && Math.abs(nextPosition - previousPosition) > 3 && Date.now() > suppressPlaybackBroadcastUntil) {
+        broadcastPlayback('rutube', 'seek', nextPosition);
+      }
+      if (Date.now() - lastRutubeSyncAt > 5000 && roomOwnerId === authUser?.id) {
+        lastRutubeSyncAt = Date.now(); broadcastPlayback('rutube', 'sync', lastRutubePosition);
+      }
+    }
+    if (message.type === 'player:error') showToast(`RUTUBE: ${message.data?.text || message.data?.code || 'ошибка плеера'}`);
+  }
+
+  async function broadcastPlayback(kind, state, time) {
+    if (!roomChannel || !authUser || Date.now() < suppressPlaybackBroadcastUntil) return;
+    const payload = { provider: kind, videoId: currentVideo?.videoId, title: currentVideo?.title, channelTitle: currentVideo?.channelTitle, state, time: Number(time) || 0, sentAt: Date.now() };
+    await roomChannel.send({ type: 'broadcast', event: 'playback', payload: { user_id: authUser.id, ...payload } });
+    await savePersistedRoomState(payload);
+  }
+
+  function applyPlaybackState(payload) {
+    if (!currentVideo || payload.videoId !== currentVideo.videoId || payload.provider !== currentVideo.provider) return;
+    const time = Math.max(0, Number(payload.time) || 0);
+    if (payload.provider === 'youtube' && youtubePlayer) {
+      const local = youtubePlayer.getCurrentTime?.() || 0;
+      if (Number.isFinite(time) && Math.abs(local - time) > 2.5) youtubePlayer.seekTo(time, true);
+      if (payload.state === 'playing' || payload.state === 'sync' || payload.state === 'seek') youtubePlayer.playVideo();
+      else if (payload.state === 'paused' || payload.state === 'ended') youtubePlayer.pauseVideo();
+    } else if (payload.provider === 'rutube') {
+      if (payload.state === 'playing') sendRutubeCommand('player:play');
+      else if (payload.state === 'paused' || payload.state === 'ended') sendRutubeCommand('player:pause');
+      if (['sync', 'seek'].includes(payload.state)) sendRutubeCommand('player:setCurrentTime', { time });
+    }
+  }
+
+  async function broadcastRoomHeartbeat() {
+    if (!roomChannel || !currentVideo || roomOwnerId !== authUser?.id) return;
+    if (currentVideo.provider === 'youtube' && youtubePlayer?.getPlayerState) {
+      const state = youtubePlayer.getPlayerState();
+      if (state === window.YT?.PlayerState?.PLAYING) broadcastPlayback('youtube', 'sync', youtubePlayer.getCurrentTime?.() || 0);
+    } else if (currentVideo.provider === 'rutube' && rutubeReady) {
+      broadcastPlayback('rutube', 'sync', lastRutubePosition);
+    }
+  }
+
+  function enablePlaybackFromGesture() {
+    $('#playerGesture').classList.add('hidden');
+    suppressPlaybackBroadcastUntil = Date.now() + 1000;
+    if (currentVideo?.provider === 'youtube') youtubePlayer?.playVideo?.();
+    else if (currentVideo?.provider === 'rutube') { sendRutubeCommand('player:unMute'); sendRutubeCommand('player:play'); }
   }
 
   async function shareRoom(friendName = '') {
@@ -834,42 +848,29 @@
   }
   function closeModal(id) { $(`#${id}`).classList.add('hidden'); }
 
-  function applyTheme(theme, persist = true) {
-    const isDark = theme === 'dark';
-    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
-    const toggle = $('#themeToggle');
-    if (toggle) {
-      toggle.setAttribute('aria-pressed', String(isDark));
-      toggle.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
-      toggle.title = isDark ? 'Светлая тема' : 'Тёмная тема';
-    }
-    const themeColor = document.querySelector('meta[name="theme-color"]');
-    if (themeColor) themeColor.content = isDark ? '#151619' : '#ffffff';
-    if (persist) {
-      try { localStorage.setItem('sync-theme', isDark ? 'dark' : 'light'); } catch (_) {}
-    }
-  }
-
   function bindEvents() {
-    const savedTheme = (() => { try { return localStorage.getItem('sync-theme'); } catch (_) { return null; } })();
-    applyTheme(savedTheme === 'dark' ? 'dark' : 'light', false);
-    $('#themeToggle').addEventListener('click', () => {
-      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-    });
     $('#authForm').addEventListener('submit', submitAuth);
-    $('#googleAuth').addEventListener('click', signInWithGoogle);
-    $('#chooseAvatar').addEventListener('click', () => $('#avatarFileInput').click());
-    $('#avatarUploadButton').addEventListener('click', () => $('#avatarFileInput').click());
-    $('#avatarFileInput').addEventListener('change', uploadAvatar);
+    $('#googleSignIn').addEventListener('click', signInWithGoogle);
     $('#authSwitch').addEventListener('click', () => setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
     $('#profileForm').addEventListener('submit', saveProfile);
+    $('#avatarInput').addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (file) { $('#avatarPreview').src = URL.createObjectURL(file); uploadAvatar(file); }
+      event.target.value = '';
+    });
     $('#logoutButton').addEventListener('click', signOut);
     $('#profileButton').addEventListener('click', () => { updateProfileUI(); openModal('profileModal'); });
-    $('#searchForm').addEventListener('submit', (event) => { event.preventDefault(); searchVideos($('#searchInput').value); });
-    $('#findFromPlayer').addEventListener('click', () => { $('#discover').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#searchInput').focus({ preventScroll: true }); });
+    $$('.provider-card').forEach((card) => card.addEventListener('click', () => selectProvider(card.dataset.provider)));
+    $('#providerSearchForm').addEventListener('submit', (event) => { event.preventDefault(); searchVideos($('#providerSearchInput').value); });
+    $('#closeProvider').addEventListener('click', () => $('#providerWorkspace').classList.add('hidden'));
+    $('#findFromPlayer').addEventListener('click', () => $('#providers').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    $('#startPlayback').addEventListener('click', enablePlaybackFromGesture);
+    window.addEventListener('message', handleRutubeMessage);
     $('#inviteTop').addEventListener('click', () => shareRoom());
+    $('#heroInvite').addEventListener('click', () => shareRoom());
     $('#invitePeople').addEventListener('click', () => shareRoom());
     $('#shareRoom').addEventListener('click', () => shareRoom());
+    $('#shareRoomSmall').addEventListener('click', () => shareRoom());
     $('#newRoom').addEventListener('click', () => createRoom(true));
     $('#addFriend').addEventListener('click', () => openModal('friendModal'));
     $('#friendSearchForm').addEventListener('submit', searchUsers);
@@ -887,9 +888,6 @@
   }
 
   async function start() {
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      navigator.serviceWorker.register('./sw.js').catch((error) => console.warn('SYNC offline cache unavailable:', error));
-    }
     bindEvents();
     if (!initializeAuthUI()) return;
     const { data: { session }, error } = await supabase.auth.getSession();
