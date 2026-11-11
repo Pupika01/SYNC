@@ -704,3 +704,85 @@ html[data-theme="dark"] .auth-small { color: #858994 !important; }
 @media (max-width: 540px) {
   .theme-toggle { width: 36px; height: 36px; border-radius: 11px; }
 }
+
+
+/* Minimal discovery and streaming-service directory */
+.discover-section { margin-top: 34px; scroll-margin-top: 100px; }
+.discover-intro { margin-bottom: 17px; }
+.discover-intro h2 { margin: 0; color: var(--text); font-size: clamp(24px, 2.4vw, 30px); letter-spacing: -1.05px; }
+.discover-intro p { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+.search-bar { height: 64px; gap: 13px; padding: 7px 8px 7px 19px; border-radius: 18px; }
+.search-icon { font-size: 28px; color: #d43b49; }
+.search-bar input { font-size: 14px; }
+.search-submit { min-width: 112px; min-height: 48px; border-radius: 13px; gap: 10px; }
+.search-kind-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 25px; }
+.kind-chip { min-height: 34px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-2); background: var(--surface); font-size: 11px; font-weight: 700; transition: .18s ease; }
+.kind-chip:hover { border-color: #ef9da6; color: #bd2a3b; }
+.kind-chip.selected { border-color: #f1c0c5; color: #b92536; background: #fff0f1; }
+.directory-head { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; margin: 0 0 15px; }
+.directory-head h3 { margin: 0; color: var(--text); font: 800 17px/1.25 "Manrope", sans-serif; letter-spacing: -.45px; }
+.directory-head span { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; text-align: right; }
+.provider-directory { display: flex; flex-direction: column; gap: 22px; }
+.service-group h4 { margin: 0 0 11px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; }
+.service-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.service-card { min-width: 0; min-height: 78px; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 3px 12px rgba(25,27,33,.025); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.service-card:hover { transform: translateY(-2px); border-color: #efb3ba; box-shadow: 0 9px 22px rgba(25,27,33,.07); }
+.service-mark { width: 43px; height: 43px; flex: 0 0 43px; display: grid; place-items: center; border-radius: 13px; color: #fff; background: #25262b; font: 800 15px/1 "Manrope", sans-serif; letter-spacing: -.6px; }
+.mark-youtube { color: #fff; background: #ef2637; font-size: 20px; }
+.mark-rutube { background: linear-gradient(145deg,#39c4b1,#2079d8); }
+.mark-vkvideo { color: #fff; background: #0877e8; font-size: 13px; }
+.mark-dzen { background: #151515; }
+.mark-kinopoisk { color: #292016; background: linear-gradient(145deg,#ffd34f,#f5a623); }
+.mark-ivi { background: #7145d8; font-size: 16px; font-style: italic; }
+.mark-okko { background: #161718; font-size: 12px; }
+.mark-wink { color: #fff; background: linear-gradient(145deg,#ec4776,#8a45d7); }
+.mark-start { background: #1c1c1e; }
+.mark-premier { background: #4b50d8; }
+.mark-kion { background: #2e59df; }
+.mark-netflix { background: #191919; color: #e50914; font-size: 21px; }
+.mark-appletv { color: #fff; background: #222329; font-size: 14px; }
+.service-copy { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: 4px; }
+.service-copy strong { overflow: hidden; color: var(--text); font: 800 12px/1.25 "Manrope", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.service-copy > span { overflow: hidden; color: var(--muted); font-size: 10px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.service-action { flex: 0 0 auto; padding: 7px 9px; border-radius: 9px; color: #bc2939; background: #fff0f1; font-size: 9px; font-weight: 800; }
+.directory-footnote { margin: 14px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.page-heading { margin-bottom: 18px; }
+.page-heading h1 { margin-top: 0; }
+.watch-meta { align-items: center; }
+.sync-status, .chat-live { display: none !important; }
+.card-heading .overline, .page-heading .overline, .section-topline .overline { display: none !important; }
+.side-card { padding: 18px; }
+.chat-messages { min-height: 100px; }
+
+html[data-theme="dark"] .kind-chip { color: #b6b8c1; background: #202127; border-color: #363840; }
+html[data-theme="dark"] .kind-chip:hover { color: #ff9ba4; border-color: #72404a; }
+html[data-theme="dark"] .kind-chip.selected { color: #ffadb4; background: #352126; border-color: #63333c; }
+html[data-theme="dark"] .directory-head h3, html[data-theme="dark"] .service-copy strong { color: #f1f1f3; }
+html[data-theme="dark"] .service-group h4 { color: #858994; }
+html[data-theme="dark"] .service-card { background: #1b1c21; border-color: #30323a; box-shadow: none; }
+html[data-theme="dark"] .service-card:hover { border-color: #72404a; box-shadow: 0 10px 24px rgba(0,0,0,.2); }
+html[data-theme="dark"] .service-action { color: #ffabb3; background: #352126; }
+html[data-theme="dark"] .search-bar { background: #1b1c21; }
+
+@media (max-width: 850px) {
+  .service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  .discover-section { margin-top: 27px; }
+  .discover-intro h2 { font-size: 23px; }
+  .discover-intro p { font-size: 11px; }
+  .search-bar { height: 54px; padding: 6px 6px 6px 12px; gap: 8px; }
+  .search-bar input { font-size: 11px; }
+  .search-submit { min-width: 78px; min-height: 40px; padding: 8px 10px; font-size: 10px; }
+  .search-kind-row { gap: 6px; margin-bottom: 21px; }
+  .kind-chip { min-height: 31px; padding: 6px 11px; font-size: 9px; }
+  .service-grid { grid-template-columns: 1fr; gap: 8px; }
+  .service-card { min-height: 67px; padding: 10px; }
+  .service-mark { width: 39px; height: 39px; flex-basis: 39px; }
+  .directory-head h3 { font-size: 15px; }
+  .directory-head span { font-size: 9px; }
+}
+
+.mark-primevideo { color: #e8f5ff; background: linear-gradient(145deg,#243c58,#14283d); font-size: 10px; letter-spacing: -.7px; }
+.mark-disney { color: #fff; background: linear-gradient(145deg,#243a92,#101d59); font-size: 12px; }
+.mark-amediateka { background: linear-gradient(145deg,#ab2241,#60152c); }

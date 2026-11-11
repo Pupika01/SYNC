@@ -42,7 +42,7 @@
   <main id="appContent" class="app-layout">
     <section class="main-column" id="watch">
       <div class="page-heading">
-        <div><div class="overline"><span class="live-indicator"></span> ЛИЧНАЯ КОМНАТА</div><h1>Смотрим вместе</h1></div>
+        <div><h1>Смотрим вместе</h1></div>
         <button class="button button-quiet" id="newRoom">＋ Новая комната</button>
       </div>
 
@@ -51,48 +51,57 @@
           <div class="stage-glow"></div>
           <div class="stage-empty" id="stagePlaceholder">
             <div class="stage-symbol"><span>▶</span></div>
-            <p>Ваш следующий совместный просмотр</p>
-            <button class="button button-primary" id="findFromPlayer">Найти видео <span>↗</span></button>
+            <p>Выберите, что будем смотреть</p>
+            <button class="button button-primary" id="findFromPlayer">Выбрать видео <span>↗</span></button>
           </div>
           <div class="embed-wrap hidden" id="embedWrap"></div>
           <div class="player-error hidden" id="playerError"></div>
           <button class="fullscreen-control" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button>
         </div>
         <div class="watch-meta">
-          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">СЕЙЧАС СМОТРИМ</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Выберите видео, чтобы начать</span></div></div>
-          <div class="sync-status"><span class="sync-dot"></span><span id="syncLabel">Подключение…</span></div>
+          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Выберите видео ниже</span></div></div><span id="syncLabel" hidden aria-hidden="true"></span>
         </div>
       </section>
 
       <section class="discover-section" id="discover">
-        <div class="section-topline"><div><span class="overline">КАТАЛОГ</span><h2>Что посмотрим?</h2></div><span class="section-note" id="searchHint">Поиск по площадкам</span></div>
-        <form class="search-bar" id="searchForm"><span class="search-icon">⌕</span><input id="searchInput" type="search" placeholder="Название фильма, сериала или видео" autocomplete="off" maxlength="100" /><button class="button button-primary search-submit" type="submit">Найти</button></form>
-        <div class="provider-row" id="providerRow" aria-label="Выберите площадку">
-          <button class="provider-chip selected" data-provider="youtube"><span class="provider-dot youtube-dot"></span>YouTube</button>
-          <button class="provider-chip" data-provider="rutube"><span class="provider-dot rutube-dot"></span>Rutube</button>
-          <button class="provider-chip" data-provider="vk"><span class="provider-dot vk-dot"></span>VK Видео</button>
-          <button class="provider-chip" data-provider="netflix"><span class="provider-dot netflix-dot"></span>Netflix</button>
-          <button class="provider-chip" data-provider="kinopoisk"><span class="provider-dot kp-dot"></span>Кинопоиск</button>
+        <div class="discover-intro">
+          <h2>Что будем смотреть?</h2>
+          <p>Найди фильм, сериал, шоу или видео — выбери площадку.</p>
         </div>
+        <form class="search-bar" id="searchForm" role="search">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="Название фильма, сериала, шоу или ссылка YouTube" autocomplete="off" maxlength="100" aria-label="Что будем смотреть?" />
+          <button class="button button-primary search-submit" type="submit"><span>Найти</span><span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="search-kind-row" id="searchKinds" aria-label="Тип контента">
+          <button class="kind-chip selected" type="button" data-kind="all">Всё</button>
+          <button class="kind-chip" type="button" data-kind="movie">Фильмы</button>
+          <button class="kind-chip" type="button" data-kind="series">Сериалы</button>
+          <button class="kind-chip" type="button" data-kind="show">Шоу</button>
+          <button class="kind-chip" type="button" data-kind="video">Видео</button>
+        </div>
+        <div class="directory-head"><h3 id="directoryTitle">Площадки</h3><span id="directoryNote">Выбери сервис</span></div>
+        <div class="provider-directory" id="providerDirectory" aria-live="polite"></div>
         <div class="search-results hidden" id="searchResults" aria-live="polite"></div>
+        <p class="directory-footnote">Поиск откроет сервис или результаты по его каталогу. Наличие контента зависит от региона и подписки.</p>
       </section>
     </section>
 
     <aside class="side-column">
       <section class="side-card room-people-card">
-        <div class="card-heading"><div><span class="overline">СЕАНС</span><h2>В комнате</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей">＋</button></div>
+        <div class="card-heading"><div><h2>В комнате</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей">＋</button></div>
         <div class="people-list" id="peopleList"><div class="person-row"><div class="person-avatar self-avatar">?</div><div class="person-info"><strong>Вы</strong><span>Организатор</span></div><span class="person-presence"></span></div></div>
         <div class="people-bottom"><span id="peopleCount">1 участник</span><button class="text-action" id="shareRoom">Ссылка-приглашение ↗</button></div>
       </section>
 
       <section class="side-card friends-card" id="friends">
-        <div class="card-heading"><div><span class="overline">ВАШ КРУГ</span><h2>Друзья</h2></div><button class="round-button" id="addFriend" title="Найти друзей" aria-label="Найти друзей">＋</button></div>
+        <div class="card-heading"><div><h2>Друзья</h2></div><button class="round-button" id="addFriend" title="Найти друзей" aria-label="Найти друзей">＋</button></div>
         <div class="friends-list" id="friendsList"><div class="empty-friends"><span class="empty-friends-icon">✳</span><span>Найди друзей по нику</span></div></div>
       </section>
 
       <section class="side-card chat-card">
-        <div class="card-heading chat-heading"><div><span class="overline">НА СВЯЗИ</span><h2>Чат</h2></div><span class="chat-live"><i></i> онлайн</span></div>
-        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Позови друзей — и общайтесь здесь во время фильма.</div></div>
+        <div class="card-heading chat-heading"><div><h2>Чат</h2></div></div>
+        <div class="chat-messages" id="chatMessages"></div>
         <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
       </section>
     </aside>

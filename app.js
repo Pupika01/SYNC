@@ -4,19 +4,44 @@
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const config = window.SYNC_CONFIG || {};
-  const providers = {
-    youtube: { name: 'YouTube', url: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
-    rutube: { name: 'Rutube', url: (q) => `https://rutube.ru/search/?query=${encodeURIComponent(q)}` },
-    vk: { name: 'VK Видео', url: (q) => `https://vkvideo.ru/?q=${encodeURIComponent(q)}` },
-    netflix: { name: 'Netflix', url: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
-    kinopoisk: { name: 'Кинопоиск', url: (q) => `https://hd.kinopoisk.ru/search?text=${encodeURIComponent(q)}` }
+  const serviceGroups = [
+    {
+      title: 'Видео и шоу',
+      services: [
+        { id: 'youtube', name: 'YouTube', mark: '▶', brand: 'youtube', note: 'Видео, каналы и шоу', domain: 'youtube.com', home: 'https://www.youtube.com/', search: q => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
+        { id: 'rutube', name: 'RUTUBE', mark: 'R', brand: 'rutube', note: 'Видео и телешоу', domain: 'rutube.ru', home: 'https://rutube.ru/', search: q => `https://rutube.ru/search/?query=${encodeURIComponent(q)}` },
+        { id: 'vkvideo', name: 'VK Видео', mark: 'VK', brand: 'vkvideo', note: 'Видео, клипы и трансляции', domain: 'vkvideo.ru', home: 'https://vkvideo.ru/', search: q => `https://vkvideo.ru/?q=${encodeURIComponent(q)}` },
+        { id: 'dzen', name: 'Дзен Видео', mark: 'Д', brand: 'dzen', note: 'Видео и авторские каналы', domain: 'dzen.ru', home: 'https://dzen.ru/video', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:dzen.ru/video ${q}`)}` }
+      ]
+    },
+    {
+      title: 'Фильмы и сериалы',
+      services: [
+        { id: 'kinopoisk', name: 'Кинопоиск', mark: 'К', brand: 'kinopoisk', note: 'Фильмы, сериалы и подборки', domain: 'kinopoisk.ru', home: 'https://hd.kinopoisk.ru/', search: q => `https://hd.kinopoisk.ru/search?text=${encodeURIComponent(q)}` },
+        { id: 'ivi', name: 'Иви', mark: 'ivi', brand: 'ivi', note: 'Фильмы и сериалы', domain: 'ivi.ru', home: 'https://www.ivi.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:ivi.ru ${q}`)}` },
+        { id: 'okko', name: 'Okko', mark: 'okko', brand: 'okko', note: 'Кино, сериалы и спорт', domain: 'okko.tv', home: 'https://okko.tv/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:okko.tv ${q}`)}` },
+        { id: 'wink', name: 'Wink', mark: 'W', brand: 'wink', note: 'Фильмы, сериалы и ТВ', domain: 'wink.ru', home: 'https://wink.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:wink.ru ${q}`)}` },
+        { id: 'start', name: 'START', mark: 'S', brand: 'start', note: 'Сериалы и оригинальные проекты', domain: 'start.ru', home: 'https://start.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:start.ru ${q}`)}` },
+        { id: 'premier', name: 'PREMIER', mark: 'P', brand: 'premier', note: 'Шоу, фильмы и сериалы', domain: 'premier.one', home: 'https://premier.one/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:premier.one ${q}`)}` },
+        { id: 'kion', name: 'KION', mark: 'K', brand: 'kion', note: 'Кино, сериалы и ТВ', domain: 'kion.ru', home: 'https://kion.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:kion.ru ${q}`)}` },
+        { id: 'netflix', name: 'Netflix', mark: 'N', brand: 'netflix', note: 'Фильмы и сериалы', domain: 'netflix.com', home: 'https://www.netflix.com/', search: q => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
+        { id: 'appletv', name: 'Apple TV+', mark: 'tv+', brand: 'appletv', note: 'Оригинальные фильмы и сериалы', domain: 'tv.apple.com', home: 'https://tv.apple.com/', search: q => `https://tv.apple.com/search?term=${encodeURIComponent(q)}` },
+        { id: 'primevideo', name: 'Prime Video', mark: 'prime', brand: 'primevideo', note: 'Фильмы и сериалы Amazon', domain: 'primevideo.com', home: 'https://www.primevideo.com/', search: q => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(q)}` },
+        { id: 'disney', name: 'Disney+', mark: 'D+', brand: 'disney', note: 'Фильмы и сериалы Disney', domain: 'disneyplus.com', home: 'https://www.disneyplus.com/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:disneyplus.com ${q}`)}` },
+        { id: 'amediateka', name: 'Амедиатека', mark: 'A', brand: 'amediateka', note: 'Сериалы и кино', domain: 'amediateka.ru', home: 'https://amediateka.ru/', search: q => `https://www.google.com/search?q=${encodeURIComponent(`site:amediateka.ru ${q}`)}` }
+      ]
+    }
+  ];
+  const searchKinds = {
+    all: '', movie: 'фильм', series: 'сериал', show: 'шоу', video: 'видео'
   };
 
   let supabase = null;
   let authUser = null;
   let profile = null;
   let authMode = 'signin';
-  let provider = 'youtube';
+  let searchKind = 'all';
+  let lastSearchQuery = '';
   let currentRoom = null;
   let inviteToken = null;
   let roomChannel = null;
@@ -635,44 +660,112 @@
     if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message, avatar_url: avatarUrl() } });
   }
 
-  function selectProvider(name) {
-    provider = providers[name] ? name : 'youtube';
-    $$('.provider-chip').forEach((chip) => chip.classList.toggle('selected', chip.dataset.provider === provider));
-    $('#searchHint').textContent = provider === 'youtube' && config.YOUTUBE_API_KEY ? 'Поиск внутри SYNC' : `Поиск на ${providers[provider].name}`;
+  function effectiveSearchQuery(rawQuery) {
+    const clean = String(rawQuery || '').trim();
+    const prefix = searchKinds[searchKind] || '';
+    return prefix ? `${prefix} ${clean}` : clean;
   }
 
-  function showSearchMessage(message, count = '') {
-    const box = $('#searchResults'); box.classList.remove('hidden'); box.replaceChildren();
-    const head = document.createElement('div'); head.className = 'results-head';
-    const title = document.createElement('strong'); title.textContent = count || `Поиск · ${providers[provider].name}`;
-    head.append(title); box.append(head);
-    const content = document.createElement('div'); content.className = 'search-empty'; content.textContent = message; box.append(content);
+  function makeServiceCard(service, query) {
+    const card = document.createElement('a');
+    card.className = `service-card service-${service.brand}`;
+    card.href = query ? service.search(query) : service.home;
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+    card.setAttribute('aria-label', `${query ? 'Искать' : 'Открыть'} ${service.name}`);
+
+    const mark = document.createElement('span');
+    mark.className = `service-mark mark-${service.brand}`;
+    mark.textContent = service.mark;
+    mark.setAttribute('aria-hidden', 'true');
+
+    const copy = document.createElement('span');
+    copy.className = 'service-copy';
+    const title = document.createElement('strong');
+    title.textContent = service.name;
+    const note = document.createElement('span');
+    note.textContent = service.note;
+    copy.append(title, note);
+
+    const action = document.createElement('span');
+    action.className = 'service-action';
+    action.textContent = query ? 'Искать ↗' : 'Открыть ↗';
+    card.append(mark, copy, action);
+    return card;
   }
 
-  function openSearchResultPage(query) {
-    const providerInfo = providers[provider];
-    const link = document.createElement('a'); link.href = providerInfo.url(query); link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = `Открыть результаты на ${providerInfo.name} ↗`;
-    const wrapper = document.createElement('div'); wrapper.className = 'search-empty';
-    wrapper.append(document.createTextNode(`Найди нужный фильм в каталоге ${providerInfo.name}. `), link);
-    const box = $('#searchResults'); box.classList.remove('hidden'); box.replaceChildren();
-    const head = document.createElement('div'); head.className = 'results-head'; const title = document.createElement('strong'); title.textContent = `Поиск · ${providerInfo.name}`; head.append(title);
-    box.append(head, wrapper);
-    $('#searchHint').textContent = provider === 'youtube' && !config.YOUTUBE_API_KEY ? 'Для поиска внутри SYNC нужен API-ключ' : 'Официальный каталог';
+  function renderServiceDirectory(query = '') {
+    const directory = $('#providerDirectory');
+    if (!directory) return;
+    directory.replaceChildren();
+    const normalizedQuery = String(query || '').trim();
+    $('#directoryTitle').textContent = normalizedQuery ? 'Искать на площадках' : 'Площадки';
+    $('#directoryNote').textContent = normalizedQuery ? `Запрос: ${normalizedQuery}` : 'Выбери сервис';
+
+    serviceGroups.forEach((group) => {
+      const section = document.createElement('section');
+      section.className = 'service-group';
+      const heading = document.createElement('h4');
+      heading.textContent = group.title;
+      const grid = document.createElement('div');
+      grid.className = 'service-grid';
+      group.services.forEach((service) => grid.append(makeServiceCard(service, normalizedQuery)));
+      section.append(heading, grid);
+      directory.append(section);
+    });
+  }
+
+  function extractYoutubeVideoId(value) {
+    const raw = String(value || '').trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+    try {
+      const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+      const url = new URL(normalized);
+      const host = url.hostname.replace(/^www\./, '').toLowerCase();
+      if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || '';
+      if (host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com')) {
+        const fromQuery = url.searchParams.get('v');
+        if (fromQuery) return fromQuery;
+        return url.pathname.match(/\/(?:shorts|embed|live)\/([a-zA-Z0-9_-]{11})/)?.[1] || '';
+      }
+    } catch (_) {}
+    return '';
   }
 
   async function searchVideos(query) {
-    if (!query.trim()) { showToast('Напиши название'); $('#searchInput').focus(); return; }
-    if (provider !== 'youtube' || !config.YOUTUBE_API_KEY) { openSearchResultPage(query.trim()); return; }
-    $('#searchResults').classList.remove('hidden'); $('#searchResults').replaceChildren();
-    const loading = document.createElement('div'); loading.className = 'search-empty'; loading.textContent = 'Ищем видео…'; $('#searchResults').append(loading);
-    try {
-      const endpoint = new URL('https://www.googleapis.com/youtube/v3/search');
-      endpoint.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '8', q: query.trim(), key: config.YOUTUBE_API_KEY }).toString();
-      const response = await fetch(endpoint); const data = await response.json();
-      if (!response.ok) throw new Error(data?.error?.message || 'Не удалось выполнить поиск');
-      renderYoutubeResults(data.items || []);
-    } catch (error) {
-      openSearchResultPage(query.trim()); showToast('Поиск YouTube недоступен. Проверь API-ключ.');
+    const rawQuery = String(query || '').trim();
+    if (!rawQuery) { $('#searchInput').focus(); return; }
+    const pastedVideoId = extractYoutubeVideoId(rawQuery);
+    if (pastedVideoId) {
+      await playYoutube(pastedVideoId, 'Видео YouTube', 'YouTube', true);
+      return;
+    }
+    lastSearchQuery = effectiveSearchQuery(rawQuery);
+    renderServiceDirectory(lastSearchQuery);
+    $('#directoryTitle').textContent = 'Где искать';
+    $('#discover').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Keep the existing embedded YouTube results when the owner has configured an API key.
+    if (config.YOUTUBE_API_KEY) {
+      $('#searchResults').classList.remove('hidden');
+      $('#searchResults').replaceChildren();
+      const loading = document.createElement('div');
+      loading.className = 'search-empty';
+      loading.textContent = 'Ищем видео на YouTube…';
+      $('#searchResults').append(loading);
+      try {
+        const endpoint = new URL('https://www.googleapis.com/youtube/v3/search');
+        endpoint.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '8', q: lastSearchQuery, key: config.YOUTUBE_API_KEY }).toString();
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error?.message || 'Не удалось выполнить поиск');
+        renderYoutubeResults(data.items || []);
+      } catch (error) {
+        $('#searchResults').classList.add('hidden');
+        console.warn('SYNC YouTube search unavailable:', error);
+      }
+    } else {
+      $('#searchResults').classList.add('hidden');
     }
   }
 
@@ -759,7 +852,11 @@
     $('#profileForm').addEventListener('submit', saveProfile);
     $('#logoutButton').addEventListener('click', signOut);
     $('#profileButton').addEventListener('click', () => { updateProfileUI(); openModal('profileModal'); });
-    $$('.provider-chip').forEach((chip) => chip.addEventListener('click', () => selectProvider(chip.dataset.provider)));
+    $$('.kind-chip').forEach((chip) => chip.addEventListener('click', () => {
+      searchKind = chip.dataset.kind || 'all';
+      $$('.kind-chip').forEach((item) => item.classList.toggle('selected', item === chip));
+      if ($('#searchInput').value.trim()) searchVideos($('#searchInput').value);
+    }));
     $('#searchForm').addEventListener('submit', (event) => { event.preventDefault(); searchVideos($('#searchInput').value); });
     $('#findFromPlayer').addEventListener('click', () => { $('#discover').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#searchInput').focus({ preventScroll: true }); });
     $('#inviteTop').addEventListener('click', () => shareRoom());
@@ -786,7 +883,7 @@
       navigator.serviceWorker.register('./sw.js').catch((error) => console.warn('SYNC offline cache unavailable:', error));
     }
     bindEvents();
-    selectProvider('youtube');
+    renderServiceDirectory();
     if (!initializeAuthUI()) return;
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) setAuthStatus(error.message, true);
