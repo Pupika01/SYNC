@@ -28,6 +28,7 @@
   let currentVideo = null;
   let toastTimer = null;
   let bootstrapping = false;
+  let profileHasAvatarColumn = true;
   const presenceSessionId = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 
   const initials = (name) => (String(name || '?').trim().replace(/^@/, '').slice(0, 1) || '?').toLocaleUpperCase('ru-RU');
@@ -71,6 +72,36 @@
   };
   const displayName = () => profile?.display_name || authUser?.email?.split('@')[0] || 'Гость';
   const cleanUsername = (value) => String(value || '').trim().replace(/^@/, '').toLowerCase();
+
+  function isMissingAvatarColumn(error) {
+    const message = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`;
+    return /avatar_url/i.test(message) && /(does not exist|schema cache|could not find|unknown column)/i.test(message);
+  }
+
+  // Старые версии базы SYNC могут ещё не содержать avatar_url. Это не должно
+  // блокировать вход: повторяем запрос только с базовыми полями профиля.
+  async function getProfileById(userId) {
+    let result = await supabase.from('sync_profiles')
+      .select('id,username,display_name,avatar_url')
+      .eq('id', userId)
+      .maybeSingle();
+    profileHasAvatarColumn = true;
+    if (isMissingAvatarColumn(result.error)) {
+      profileHasAvatarColumn = false;
+      result = await supabase.from('sync_profiles')
+        .select('id,username,display_name')
+        .eq('id', userId)
+        .maybeSingle();
+      if (result.data) result.data.avatar_url = null;
+    }
+    return result;
+  }
+
+  async function queryWithOptionalAvatar(queryFactory) {
+    let result = await queryFactory(true);
+    if (isMissingAvatarColumn(result.error)) result = await queryFactory(false);
+    return result;
+  }
 
   function showAuthGate() {
     $('#authGate').classList.remove('hidden');
@@ -182,20 +213,19 @@
     bootstrapping = true;
     authUser = user;
     try {
-      const { data, error } = await supabase.from('sync_profiles')
-        .select('id, username, display_name, avatar_url')
-        .eq('id', user.id)
-        .single();
-      if (error) throw new Error(`Профиль не найден. Выполни SQL из supabase.sql. (${error.message})`);
+      const { data, error } = await getProfileById(user.id);
+      if (error) throw new Error(`Не удалось загрузить профиль SYNC. Проверь, что SQL проекта выполнен. (${error.message})`);
+      if (!data) throw new Error('Для этого аккаунта ещё не создан профиль SYNC. Выполни supabase.sql в Supabase → SQL Editor, затем обнови страницу.');
       profile = data;
       const providerAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
-      if (!profile.avatar_url && providerAvatar) {
+      if (profileHasAvatarColumn && !profile.avatar_url && providerAvatar) {
         const avatarUpdate = await supabase.from('sync_profiles')
           .update({ avatar_url: providerAvatar })
           .eq('id', user.id)
           .select('id,username,display_name,avatar_url')
-          .single();
+          .maybeSingle();
         if (!avatarUpdate.error && avatarUpdate.data) profile = avatarUpdate.data;
+        else if (isMissingAvatarColumn(avatarUpdate.error)) profileHasAvatarColumn = false;
       }
       updateProfileUI();
       hideAuthGate();
@@ -245,10 +275,10 @@
     const { data, error } = await supabase.from('sync_profiles')
       .update({ display_name: name, username })
       .eq('id', authUser.id)
-      .select('id,username,display_name,avatar_url')
+      .select('id,username,display_name')
       .single();
     if (error) return showToast(error.code === '23505' ? 'Этот ник уже занят' : error.message);
-    profile = data;
+    profile = { ...data, avatar_url: profile?.avatar_url || null };
     updateProfileUI();
     $('#profileModal').classList.add('hidden');
     if (roomChannel) await roomChannel.track(presenceProfile());
@@ -268,6 +298,11 @@
     }
     if (file.size > 3 * 1024 * 1024) {
       showToast('Фото должно весить не больше 3 МБ');
+      event.target.value = '';
+      return;
+    }
+    if (!profileHasAvatarColumn) {
+      showToast('Чтобы включить фото профиля, один раз выполни supabase.sql в Supabase → SQL Editor.');
       event.target.value = '';
       return;
     }
@@ -454,10 +489,10 @@
   }
 
   async function loadFriends() {
-    const { data, error } = await supabase.from('sync_friend_requests')
-      .select('id,from_user,to_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name,avatar_url),to_profile:sync_profiles!sync_friend_requests_to_user_fkey(id,username,display_name,avatar_url)')
+    const { data, error } = await queryWithOptionalAvatar((withAvatar) => supabase.from('sync_friend_requests')
+      .select(`id,from_user,to_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name${withAvatar ? ',avatar_url' : ''}),to_profile:sync_profiles!sync_friend_requests_to_user_fkey(id,username,display_name${withAvatar ? ',avatar_url' : ''})`)
       .eq('status', 'accepted')
-      .or(`from_user.eq.${authUser.id},to_user.eq.${authUser.id}`);
+      .or(`from_user.eq.${authUser.id},to_user.eq.${authUser.id}`));
     if (error) { showToast(`Не загрузились друзья: ${error.message}`); return; }
     friends = (data || []).map((row) => ({
       requestId: row.id,
@@ -468,11 +503,11 @@
   }
 
   async function loadIncomingRequests() {
-    const { data, error } = await supabase.from('sync_friend_requests')
-      .select('id,from_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name,avatar_url)')
+    const { data, error } = await queryWithOptionalAvatar((withAvatar) => supabase.from('sync_friend_requests')
+      .select(`id,from_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name${withAvatar ? ',avatar_url' : ''})`)
       .eq('to_user', authUser.id)
       .eq('status', 'pending')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
     if (error) { showToast(`Не загрузились заявки: ${error.message}`); return; }
     incomingRequests = data || [];
     renderIncomingRequests();
@@ -519,11 +554,11 @@
     }
     box.className = 'modal-list';
     const loading = document.createElement('div'); loading.className = 'modal-empty'; loading.textContent = 'Ищем…'; box.append(loading);
-    const { data, error } = await supabase.from('sync_profiles')
-      .select('id,username,display_name,avatar_url')
+    const { data, error } = await queryWithOptionalAvatar((withAvatar) => supabase.from('sync_profiles')
+      .select(`id,username,display_name${withAvatar ? ',avatar_url' : ''}`)
       .ilike('username', `${query}%`)
       .neq('id', authUser.id)
-      .limit(8);
+      .limit(8));
     box.replaceChildren();
     if (error) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = error.message; box.append(msg); return; }
     if (!data?.length) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = 'Никого не нашли. Проверь написание.'; box.append(msg); return; }
