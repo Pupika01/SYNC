@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#090713" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c181c" />
   <meta name="description" content="SYNC — смотри вместе с друзьями." />
   <title>SYNC — Что будем смотреть?</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
@@ -11,14 +11,13 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <header class="topbar">
     <a class="brand" href="#watch" aria-label="SYNC — главная">
-      <img src="icon.svg" alt="" class="brand-icon" /><span>SYNC</span>
+      <img src="icon.svg" alt="" class="brand-icon" /><span>sync</span>
     </a>
     <nav class="main-nav" aria-label="Навигация">
       <a class="nav-link active" href="#watch">Смотреть</a>
@@ -32,27 +31,17 @@
 
   <main id="appContent" class="app-layout">
     <section class="main-column" id="watch">
-      <section class="hero-card">
-        <div class="hero-content">
-          <span class="eyebrow"><i class="eyebrow-dot"></i> YOUR PRIVATE CINEMA</span>
-          <h1>Что будем<br /><span>смотреть?</span></h1>
-          <p>Выбери площадку, пригласи друзей и запускай просмотр одновременно — где бы вы ни были.</p>
-          <div class="hero-actions">
-            <button class="button button-primary" id="newRoom" type="button"><span class="button-symbol">＋</span> Создать комнату</button>
-            <button class="button button-glass" id="heroInvite" type="button"><span>↗</span> Позвать друзей</button>
-          </div>
-        </div>
-        <div class="hero-art" aria-hidden="true"><div class="hero-orbit orbit-a"></div><div class="hero-orbit orbit-b"></div><div class="hero-glyph">▶</div><div class="hero-star star-a">✦</div><div class="hero-star star-b">✧</div><div class="hero-star star-c">·</div></div>
-        <div class="hero-bottom"><span><i></i> Синхронизация в реальном времени</span><span>СМОТРИ. ДЕЛИСЬ. НАСЛАЖДАЙСЯ.</span></div>
+      <section class="room-head">
+        <div><h1>Смотрим вместе</h1><p class="room-sub"><span class="room-live"><i></i> комната открыта</span><span class="dot-sep">·</span><span id="roomHint">отправь ссылку, и друзья окажутся рядом</span></p></div>
+        <div class="room-actions"><button class="button button-quiet" id="newRoom" type="button">＋ Новая комната</button><button class="button button-primary" id="shareRoom" type="button">Пригласить <span>↗</span></button></div>
       </section>
 
       <section class="player-card" aria-label="Совместный видеоплеер">
-        <div class="player-topline"><div><span class="eyebrow">ВАША КОМНАТА</span><h2>Смотрим вместе</h2></div><div class="room-controls"><span class="room-live"><i></i> LIVE</span><button class="button button-soft button-small" id="shareRoom" type="button">Ссылка-приглашение ↗</button></div></div>
         <div class="video-stage" id="playerStage">
           <div class="stage-empty" id="stagePlaceholder">
-            <div class="stage-symbol"><span>▶</span></div>
-            <strong>Здесь будет ваш фильм</strong>
-            <p>Выберите YouTube или RUTUBE ниже — видео появится у всех участников комнаты.</p>
+            <img class="stage-symbol" src="icon.svg" alt="" />
+            <h2>Что будем смотреть?</h2>
+            <p>Выберите YouTube или RUTUBE ниже, и видео появится у всех в комнате.</p>
             <button class="button button-primary" id="findFromPlayer" type="button">Выбрать площадку <span>↓</span></button>
           </div>
           <div class="embed-wrap hidden" id="embedWrap"></div>
@@ -61,22 +50,22 @@
           <button class="fullscreen-control" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button>
         </div>
         <div class="watch-meta">
-          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">СЕЙЧАС СМОТРИМ</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Выберите площадку ниже</span></div></div>
+          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">Сейчас смотрим</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Выберите площадку ниже</span></div></div>
           <div class="sync-status"><span class="sync-dot"></span><span id="syncLabel">Подключение…</span></div>
         </div>
       </section>
 
       <section class="providers-section" id="providers">
-        <div class="section-heading"><div><span class="eyebrow">ПЛАТФОРМЫ</span><h2>Выбери, где смотреть</h2><p>Нажми на площадку, чтобы выбрать видео прямо в SYNC.</p></div></div>
+        <div class="section-heading"><h2>Где смотрим?</h2><p>Нажми на площадку, чтобы найти видео прямо в SYNC.</p></div>
         <div class="provider-grid" id="providerRow">
-          <button class="provider-card youtube-card" data-provider="youtube" type="button"><span class="provider-logo youtube-logo" aria-hidden="true"><svg viewBox="0 0 48 34"><rect x="1" y="1" width="46" height="32" rx="10" fill="#ff0033"/><path d="M20 10.5 32 17 20 23.5Z" fill="white"/></svg></span><span class="provider-copy"><strong>YouTube</strong><small>Встроенный плеер</small></span><span class="provider-arrow">↓</span></button>
-          <button class="provider-card rutube-card" data-provider="rutube" type="button"><span class="provider-logo rutube-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><defs><linearGradient id="rtg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff4f78"/><stop offset="1" stop-color="#7c45ff"/></linearGradient></defs><path d="M9 10h18c8 0 13 4 13 11 0 5-3 9-8 10l8 8H27l-8-8h-1v8H9V10Zm9 8v6h9c2 0 4-1 4-3s-2-3-4-3h-9Z" fill="url(#rtg)"/></svg></span><span class="provider-copy"><strong>RUTUBE</strong><small>Встроенный плеер</small></span><span class="provider-arrow">↓</span></button>
-          <button class="provider-card vk-card" data-provider="vk" type="button"><span class="provider-logo vk-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#0878f9"/><path d="M10 15h6c.5 0 .8.3 1 1 1.8 5.2 4.1 8.2 5.8 9.2.5.3.9.1.9-.5v-7.7c-.1-1.1-.6-1.5-1.6-1.8V15h9.4c.8 0 1 .4.8 1.2-.5 1.4-.8 3.7-.8 6.7v2.2c0 .7.4.9 1 .4 2-1.5 4.1-5.3 5.4-9.4.2-.7.6-1.1 1.4-1.1h5.1c1 0 1.3.5 1 1.4-1.3 3.5-3.2 6.7-5.4 9.3-.5.5-.5 1 .1 1.5 2.1 1.8 4.4 4.3 5.7 7 .4.8.1 1.3-.8 1.3h-5.8c-.8 0-1.2-.3-1.7-1-1.5-2.2-3.1-3.9-4.5-4.8-.7-.5-1.1-.2-1.1.6v3.9c0 .8-.4 1.3-1.3 1.3h-2.8c-7.8 0-13.7-5.3-17.7-15.9-.3-.8 0-1.2.9-1.2Z" fill="white" transform="translate(-3 -2) scale(.95)"/></svg></span><span class="provider-copy"><strong>VK Видео</strong><small>Интеграция готовится</small></span><span class="provider-arrow">↓</span></button>
-          <button class="provider-card netflix-card" data-provider="netflix" type="button"><span class="provider-logo netflix-logo" aria-hidden="true"><svg viewBox="0 0 38 48"><path d="M5 3h8l12 31V3h8v42l-8 0L13 14v31H5Z" fill="#e50914"/><path d="M5 3h8l20 42h-8Z" fill="#b20710" opacity=".65"/></svg></span><span class="provider-copy"><strong>Netflix</strong><small>Защищённый плеер</small></span><span class="provider-arrow">↓</span></button>
-          <button class="provider-card kp-card" data-provider="kinopoisk" type="button"><span class="provider-logo kp-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#f2a900"/><path d="M14 9h7v13l11-13h9L28 23l14 16h-9L21 25v14h-7Z" fill="#211323"/></svg></span><span class="provider-copy"><strong>Кинопоиск</strong><small>Защищённый плеер</small></span><span class="provider-arrow">↓</span></button>
+          <button class="provider-card youtube-card" data-provider="youtube" type="button"><span class="provider-logo youtube-logo" aria-hidden="true"><svg viewBox="0 0 48 34"><rect x="1" y="1" width="46" height="32" rx="10" fill="#ff0033"/><path d="M20 10.5 32 17 20 23.5Z" fill="white"/></svg></span><span class="provider-copy"><strong>YouTube</strong><small>Смотреть вместе</small></span></button>
+          <button class="provider-card rutube-card" data-provider="rutube" type="button"><span class="provider-logo rutube-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><defs><linearGradient id="rtg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff4f78"/><stop offset="1" stop-color="#7c45ff"/></linearGradient></defs><path d="M9 10h18c8 0 13 4 13 11 0 5-3 9-8 10l8 8H27l-8-8h-1v8H9V10Zm9 8v6h9c2 0 4-1 4-3s-2-3-4-3h-9Z" fill="url(#rtg)"/></svg></span><span class="provider-copy"><strong>RUTUBE</strong><small>Смотреть вместе</small></span></button>
+          <button class="provider-card vk-card" data-provider="vk" type="button"><span class="provider-logo vk-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#0878f9"/><path d="M10 15h6c.5 0 .8.3 1 1 1.8 5.2 4.1 8.2 5.8 9.2.5.3.9.1.9-.5v-7.7c-.1-1.1-.6-1.5-1.6-1.8V15h9.4c.8 0 1 .4.8 1.2-.5 1.4-.8 3.7-.8 6.7v2.2c0 .7.4.9 1 .4 2-1.5 4.1-5.3 5.4-9.4.2-.7.6-1.1 1.4-1.1h5.1c1 0 1.3.5 1 1.4-1.3 3.5-3.2 6.7-5.4 9.3-.5.5-.5 1 .1 1.5 2.1 1.8 4.4 4.3 5.7 7 .4.8.1 1.3-.8 1.3h-5.8c-.8 0-1.2-.3-1.7-1-1.5-2.2-3.1-3.9-4.5-4.8-.7-.5-1.1-.2-1.1.6v3.9c0 .8-.4 1.3-1.3 1.3h-2.8c-7.8 0-13.7-5.3-17.7-15.9-.3-.8 0-1.2.9-1.2Z" fill="white" transform="translate(-3 -2) scale(.95)"/></svg></span><span class="provider-copy"><strong>VK Видео</strong><small>Скоро</small></span></button>
+          <button class="provider-card netflix-card" data-provider="netflix" type="button"><span class="provider-logo netflix-logo" aria-hidden="true"><svg viewBox="0 0 38 48"><path d="M5 3h8l12 31V3h8v42l-8 0L13 14v31H5Z" fill="#e50914"/><path d="M5 3h8l20 42h-8Z" fill="#b20710" opacity=".65"/></svg></span><span class="provider-copy"><strong>Netflix</strong><small>Нельзя встроить</small></span></button>
+          <button class="provider-card kp-card" data-provider="kinopoisk" type="button"><span class="provider-logo kp-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#f2a900"/><path d="M14 9h7v13l11-13h9L28 23l14 16h-9L21 25v14h-7Z" fill="#211323"/></svg></span><span class="provider-copy"><strong>Кинопоиск</strong><small>Нельзя встроить</small></span></button>
         </div>
         <section class="provider-workspace hidden" id="providerWorkspace">
-          <div class="workspace-head"><div><span class="eyebrow">ВНУТРИ SYNC</span><h3 id="providerTitle">YouTube</h3><p id="providerDescription">Найди видео и запусти его для всех участников комнаты.</p></div><button class="icon-button" id="closeProvider" type="button" aria-label="Закрыть">×</button></div>
+          <div class="workspace-head"><div><h3 id="providerTitle">YouTube</h3><p id="providerDescription">Найди видео и запусти его для всех участников комнаты.</p></div><button class="icon-button" id="closeProvider" type="button" aria-label="Закрыть">×</button></div>
           <form class="provider-search" id="providerSearchForm"><span>⌕</span><input id="providerSearchInput" type="search" placeholder="Название фильма, сериала или видео" maxlength="100" autocomplete="off" /><button class="button button-primary" type="submit">Найти</button></form>
           <div class="provider-message" id="providerMessage">Выберите видео, чтобы начать общий просмотр.</div>
           <div class="search-results" id="searchResults" aria-live="polite"></div>
@@ -86,18 +75,18 @@
 
     <aside class="side-column">
       <section class="side-card room-people-card">
-        <div class="card-heading"><div><span class="eyebrow">СЕЙЧАС ВМЕСТЕ</span><h2>Участники</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей" type="button">＋</button></div>
+        <div class="card-heading"><div><h2>Участники</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей" type="button">＋</button></div>
         <div class="people-list" id="peopleList"><div class="person-row"><div class="person-avatar self-avatar">?</div><div class="person-info"><strong>Вы</strong><span>Организатор</span></div><span class="person-presence"></span></div></div>
         <div class="people-bottom"><span id="peopleCount">1 участник</span><button class="text-action" id="shareRoomSmall" type="button">Пригласить ↗</button></div>
       </section>
 
       <section class="side-card friends-card" id="friends">
-        <div class="card-heading"><div><span class="eyebrow">ТВОЙ КРУГ</span><h2>Друзья</h2></div><button class="round-button" id="addFriend" title="Найти друзей" aria-label="Найти друзей" type="button">＋</button></div>
+        <div class="card-heading"><div><h2>Друзья</h2></div><button class="round-button" id="addFriend" title="Найти друзей" aria-label="Найти друзей" type="button">＋</button></div>
         <div class="friends-list" id="friendsList"><div class="empty-friends"><span class="empty-friends-icon">✳</span><span>Найди друзей по имени</span></div></div>
       </section>
 
       <section class="side-card chat-card">
-        <div class="card-heading chat-heading"><div><span class="eyebrow">ОБЩАЯ КОМНАТА</span><h2>Чат</h2></div><span class="chat-live"><i></i> онлайн</span></div>
+        <div class="card-heading chat-heading"><div><h2>Чат</h2></div><span class="chat-live"><i></i> онлайн</span></div>
         <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Общайтесь, пока идёт фильм.</div></div>
         <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
       </section>
@@ -106,11 +95,11 @@
 
   <div class="auth-gate" id="authGate">
     <div class="auth-card">
-      <div class="auth-brand"><img src="icon.svg" alt="" class="brand-icon" /><span>SYNC</span></div>
-      <div id="setupNotice" class="setup-notice hidden"><div class="auth-mark">✦</div><h1>Подключим SYNC</h1><p>Укажи адрес проекта Supabase и публичный ключ в <code>config.js</code>, затем обнови страницу.</p><ol><li>Supabase → Project Settings → API.</li><li>Скопируй Project URL и Publishable key.</li></ol><p class="auth-small">Никогда не вставляй service_role или secret key в сайт.</p></div>
+      <div class="auth-brand"><img src="icon.svg" alt="" class="brand-icon" /><span>sync</span></div>
+      <div id="setupNotice" class="setup-notice hidden"><h1>Подключим SYNC</h1><p>Укажи адрес проекта Supabase и публичный ключ в <code>config.js</code>, затем обнови страницу.</p><ol><li>Supabase → Project Settings → API.</li><li>Скопируй Project URL и Publishable key.</li></ol><p class="auth-small">Никогда не вставляй service_role или secret key в сайт.</p></div>
       <div id="authPanel" class="hidden">
-        <div class="auth-mark">✦</div><h1 id="authTitle">С возвращением</h1><p id="authSubtitle">Войди, чтобы смотреть вместе с друзьями.</p>
-        <button class="google-button" id="googleSignIn" type="button"><span class="google-g">G</span> Продолжить с Google</button>
+        <h1 id="authTitle">С возвращением</h1><p id="authSubtitle">Войди, чтобы смотреть вместе с друзьями.</p>
+        <button class="google-button" id="googleSignIn" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Продолжить с Google</span></button>
         <div class="auth-divider"><span>или по почте</span></div>
         <form id="authForm" class="modal-form auth-form">
           <div id="signupFields" class="hidden"><label for="authDisplayName">Как тебя называть?</label><input id="authDisplayName" type="text" minlength="2" maxlength="24" placeholder="Твоё имя" autocomplete="given-name" /></div>
@@ -126,9 +115,9 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><span class="modal-icon">✦</span><span class="eyebrow">ТВОЙ КРУГ</span><h2 id="friendModalTitle">Найти друзей</h2><p>Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Например, Алексей" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
+  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><h2 id="friendModalTitle">Найти друзей</h2><p class="modal-sub">Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Например, Алексей" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
 
-  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="modal-card"><button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button><span class="modal-icon">◎</span><span class="eyebrow">АККАУНТ</span><h2 id="profileModalTitle">Твой профиль</h2><div class="avatar-upload-row"><img id="avatarPreview" src="icon.svg" alt="Фото профиля" /><div><label class="button button-soft upload-label" for="avatarInput">Изменить фото</label><input id="avatarInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" /><small>JPG, PNG или WebP · до 10 МБ</small></div></div><form id="profileForm" class="modal-form"><label for="profileDisplayName">Как тебя называть?</label><input id="profileDisplayName" type="text" minlength="2" maxlength="24" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form><button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button></div></div>
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="modal-card"><button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button><h2 id="profileModalTitle">Твой профиль</h2><div class="avatar-upload-row"><img id="avatarPreview" src="icon.svg" alt="Фото профиля" /><div><label class="button button-soft upload-label" for="avatarInput">Изменить фото</label><input id="avatarInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" /><small>JPG, PNG или WebP · до 10 МБ</small></div></div><form id="profileForm" class="modal-form"><label for="profileDisplayName">Как тебя называть?</label><input id="profileDisplayName" type="text" minlength="2" maxlength="24" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form><button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button></div></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>

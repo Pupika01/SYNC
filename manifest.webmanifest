@@ -1,14 +1,18 @@
 {
+  "id": "./",
   "name": "SYNC — смотреть вместе",
   "short_name": "SYNC",
-  "description": "Совместный просмотр видео с друзьями",
+  "description": "Смотри видео вместе с друзьями, где бы вы ни были",
+  "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#090713",
-  "theme_color": "#090713",
+  "background_color": "#0c181c",
+  "theme_color": "#0c181c",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
