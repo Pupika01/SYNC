@@ -24,12 +24,39 @@
   let friends = [];
   let incomingRequests = [];
   let onlineIds = new Set();
+  let onlineProfiles = new Map();
   let currentVideo = null;
   let toastTimer = null;
   let bootstrapping = false;
   const presenceSessionId = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 
   const initials = (name) => (String(name || '?').trim().replace(/^@/, '').slice(0, 1) || '?').toLocaleUpperCase('ru-RU');
+  const avatarUrl = (person = profile) => person?.avatar_url || person?.avatar || person?.user_metadata?.avatar_url || person?.user_metadata?.picture || (person === profile ? authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture : '') || '';
+
+  function paintAvatar(node, name, url = '') {
+    if (!node) return;
+    node.replaceChildren();
+    if (url) {
+      const image = document.createElement('img');
+      image.src = url;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.referrerPolicy = 'no-referrer';
+      image.addEventListener('error', () => { image.remove(); node.textContent = initials(name); }, { once: true });
+      node.append(image);
+    } else {
+      node.textContent = initials(name);
+    }
+  }
+
+  function presenceProfile() {
+    return {
+      user_id: authUser.id,
+      username: profile.username,
+      display_name: profile.display_name,
+      avatar_url: avatarUrl()
+    };
+  }
   const showToast = (message) => {
     const toast = $('#toast');
     toast.textContent = message;
@@ -40,7 +67,7 @@
   const setAuthStatus = (message, isError = false) => {
     const node = $('#authStatus');
     node.textContent = message || '';
-    node.style.color = isError ? '#ff9a9f' : '#f0c58d';
+    node.style.color = isError ? '#c24f5d' : '#9c7b47';
   };
   const displayName = () => profile?.display_name || authUser?.email?.split('@')[0] || 'Гость';
   const cleanUsername = (value) => String(value || '').trim().replace(/^@/, '').toLowerCase();
@@ -78,7 +105,7 @@
     const signup = authMode === 'signup';
     $('#signupFields').classList.toggle('hidden', !signup);
     $('#authTitle').textContent = signup ? 'Создать аккаунт' : 'С возвращением';
-    $('#authSubtitle').textContent = signup ? 'Твой аккаунт, друзья и комнаты — в одном месте.' : 'Войди, чтобы смотреть вместе с друзьями.';
+    $('#authSubtitle').textContent = signup ? 'Создай пространство для своих людей и любимых видео.' : 'Твои люди. Ваше кино. Одно общее пространство.';
     $('#authSubmit').textContent = signup ? 'Зарегистрироваться' : 'Войти';
     $('#authSwitchText').textContent = signup ? 'Уже есть аккаунт?' : 'Впервые в SYNC?';
     $('#authSwitch').textContent = signup ? 'Войти' : 'Создать аккаунт';
@@ -86,6 +113,27 @@
     $('#authUsername').required = signup;
     $('#authDisplayName').required = signup;
     setAuthStatus('');
+    $('#googleAuth').classList.remove('hidden');
+  }
+
+  async function signInWithGoogle() {
+    if (!supabase) return;
+    const button = $('#googleAuth');
+    button.disabled = true;
+    button.textContent = 'Переходим к Google…';
+    setAuthStatus('');
+    try {
+      const redirectUrl = new URL(location.href);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: redirectUrl.toString(), queryParams: { prompt: 'select_account' } }
+      });
+      if (error) throw error;
+    } catch (error) {
+      setAuthStatus(error.message || 'Не удалось открыть вход через Google.', true);
+      button.disabled = false;
+      button.innerHTML = '<span class="google-mark" aria-hidden="true">G</span> Продолжить с Google';
+    }
   }
 
   async function submitAuth(event) {
@@ -135,11 +183,20 @@
     authUser = user;
     try {
       const { data, error } = await supabase.from('sync_profiles')
-        .select('id, username, display_name')
+        .select('id, username, display_name, avatar_url')
         .eq('id', user.id)
         .single();
       if (error) throw new Error(`Профиль не найден. Выполни SQL из supabase.sql. (${error.message})`);
       profile = data;
+      const providerAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+      if (!profile.avatar_url && providerAvatar) {
+        const avatarUpdate = await supabase.from('sync_profiles')
+          .update({ avatar_url: providerAvatar })
+          .eq('id', user.id)
+          .select('id,username,display_name,avatar_url')
+          .single();
+        if (!avatarUpdate.error && avatarUpdate.data) profile = avatarUpdate.data;
+      }
       updateProfileUI();
       hideAuthGate();
       await Promise.all([loadFriends(), loadIncomingRequests()]);
@@ -154,7 +211,8 @@
   }
 
   function updateProfileUI() {
-    $('#profileButton').textContent = initials(displayName());
+    paintAvatar($('#profileButton'), displayName(), avatarUrl());
+    paintAvatar($('#profileAvatarPreview'), displayName(), avatarUrl());
     $('#profileDisplayName').value = profile?.display_name || '';
     $('#profileUsername').value = profile?.username || '';
     $('#profileEmail').textContent = authUser?.email || '';
@@ -166,6 +224,8 @@
     if (onlineChannel) await supabase.removeChannel(onlineChannel);
     roomChannel = null;
     onlineChannel = null;
+    onlineIds = new Set();
+    onlineProfiles = new Map();
     authUser = null;
     profile = null;
     friends = [];
@@ -185,16 +245,77 @@
     const { data, error } = await supabase.from('sync_profiles')
       .update({ display_name: name, username })
       .eq('id', authUser.id)
-      .select('id,username,display_name')
+      .select('id,username,display_name,avatar_url')
       .single();
     if (error) return showToast(error.code === '23505' ? 'Этот ник уже занят' : error.message);
     profile = data;
     updateProfileUI();
     $('#profileModal').classList.add('hidden');
-    if (roomChannel) await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name });
-    if (onlineChannel) await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name });
+    if (roomChannel) await roomChannel.track(presenceProfile());
+    if (onlineChannel) await onlineChannel.track(presenceProfile());
     renderMembers();
     showToast('Профиль сохранён');
+  }
+
+  async function uploadAvatar(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      showToast('Подойдёт JPG, PNG или WebP');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('Фото должно весить не больше 3 МБ');
+      event.target.value = '';
+      return;
+    }
+
+    const uploadButton = $('#chooseAvatar');
+    uploadButton.disabled = true;
+    uploadButton.textContent = 'Загружаем…';
+    try {
+      const extension = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+      const objectPath = `${authUser.id}/${globalThis.crypto?.randomUUID?.() || Date.now()}.${extension}`;
+      const storage = supabase.storage.from('sync-avatars');
+      const { error: uploadError } = await storage.upload(objectPath, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: false
+      });
+      if (uploadError) throw uploadError;
+      const { data: publicData } = storage.getPublicUrl(objectPath);
+      const { data, error } = await supabase.from('sync_profiles')
+        .update({ avatar_url: publicData.publicUrl })
+        .eq('id', authUser.id)
+        .select('id,username,display_name,avatar_url')
+        .single();
+      if (error) throw error;
+      const previousUrl = profile?.avatar_url || '';
+      profile = data;
+      updateProfileUI();
+      if (roomChannel) await roomChannel.track(presenceProfile());
+      if (onlineChannel) await onlineChannel.track(presenceProfile());
+      renderMembers();
+      renderFriends();
+      const storagePrefix = '/storage/v1/object/public/sync-avatars/';
+      const oldPathStart = previousUrl.indexOf(storagePrefix);
+      if (oldPathStart >= 0) {
+        const oldPath = decodeURIComponent(previousUrl.slice(oldPathStart + storagePrefix.length).split('?')[0]);
+        if (oldPath && oldPath !== objectPath) await storage.remove([oldPath]);
+      }
+      showToast('Фото профиля обновлено');
+    } catch (error) {
+      const message = error.message || 'Не удалось загрузить фото';
+      showToast(message.includes('Bucket not found') || message.includes('sync-avatars')
+        ? 'Выполни обновлённый supabase.sql — он создаст хранилище фото.'
+        : message);
+    } finally {
+      uploadButton.disabled = false;
+      uploadButton.textContent = 'Загрузить фото';
+      event.target.value = '';
+    }
   }
 
   function setRoomUrl(roomId, token) {
@@ -265,7 +386,7 @@
       .on('presence', { event: 'join' }, renderMembers)
       .on('presence', { event: 'leave' }, renderMembers)
       .on('broadcast', { event: 'chat' }, ({ payload }) => {
-        if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '');
+        if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '', false, payload?.avatar_url || '');
       })
       .on('broadcast', { event: 'video' }, ({ payload }) => {
         if (payload?.user_id !== authUser.id && payload?.videoId) {
@@ -275,7 +396,7 @@
       });
     roomChannel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await roomChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name });
+        await roomChannel.track(presenceProfile());
         renderMembers();
         $('#syncLabel').textContent = 'Комната синхронизирована';
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -291,13 +412,13 @@
     const state = roomChannel?.presenceState?.() || {};
     const participants = Object.values(state).flat().filter((person) => person?.user_id);
     if (!participants.some((person) => person.user_id === authUser?.id) && authUser) {
-      participants.unshift({ user_id: authUser.id, display_name: displayName() });
+      participants.unshift({ user_id: authUser.id, display_name: displayName(), avatar_url: avatarUrl() });
     }
     const unique = [...new Map(participants.map((person) => [person.user_id, person])).values()];
     unique.forEach((person) => {
       const mine = person.user_id === authUser?.id;
       const row = document.createElement('div'); row.className = 'person-row';
-      const avatar = document.createElement('div'); avatar.className = `person-avatar${mine ? ' self-avatar' : ''}`; avatar.textContent = initials(person.display_name);
+      const avatar = document.createElement('div'); avatar.className = `person-avatar${mine ? ' self-avatar' : ''}`; paintAvatar(avatar, person.display_name, person.avatar_url || (mine ? avatarUrl() : ''));
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = mine ? 'Вы' : (person.display_name || person.username || 'Участник');
       const role = document.createElement('span'); role.textContent = mine ? 'Вы здесь' : 'Смотрит вместе с вами';
@@ -315,14 +436,18 @@
     });
     onlineChannel.on('presence', { event: 'sync' }, () => {
       const state = onlineChannel.presenceState();
-      onlineIds = new Set(Object.values(state).flat().map((item) => item?.user_id).filter(Boolean));
+      const peers = Object.values(state).flat().filter((item) => item?.user_id);
+      onlineIds = new Set(peers.map((item) => item.user_id));
+      onlineProfiles = new Map(peers.map((item) => [item.user_id, item]));
       renderFriends();
     });
     onlineChannel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await onlineChannel.track({ user_id: authUser.id, username: profile.username, display_name: profile.display_name });
+        await onlineChannel.track(presenceProfile());
         const state = onlineChannel.presenceState();
-        onlineIds = new Set(Object.values(state).flat().map((item) => item?.user_id).filter(Boolean));
+        const peers = Object.values(state).flat().filter((item) => item?.user_id);
+        onlineIds = new Set(peers.map((item) => item.user_id));
+        onlineProfiles = new Map(peers.map((item) => [item.user_id, item]));
         renderFriends();
       }
     });
@@ -330,7 +455,7 @@
 
   async function loadFriends() {
     const { data, error } = await supabase.from('sync_friend_requests')
-      .select('id,from_user,to_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name),to_profile:sync_profiles!sync_friend_requests_to_user_fkey(id,username,display_name)')
+      .select('id,from_user,to_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name,avatar_url),to_profile:sync_profiles!sync_friend_requests_to_user_fkey(id,username,display_name,avatar_url)')
       .eq('status', 'accepted')
       .or(`from_user.eq.${authUser.id},to_user.eq.${authUser.id}`);
     if (error) { showToast(`Не загрузились друзья: ${error.message}`); return; }
@@ -344,7 +469,7 @@
 
   async function loadIncomingRequests() {
     const { data, error } = await supabase.from('sync_friend_requests')
-      .select('id,from_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name)')
+      .select('id,from_user,from_profile:sync_profiles!sync_friend_requests_from_user_fkey(id,username,display_name,avatar_url)')
       .eq('to_user', authUser.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
@@ -364,7 +489,7 @@
     }
     friends.forEach((friend) => {
       const row = document.createElement('div'); row.className = 'friend-row';
-      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; avatar.textContent = initials(friend.display_name || friend.username);
+      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, friend.display_name || friend.username, onlineProfiles.get(friend.id)?.avatar_url || friend.avatar_url);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = friend.display_name || friend.username;
       const handle = document.createElement('span'); handle.className = 'friend-state'; handle.textContent = `@${friend.username}`;
@@ -395,7 +520,7 @@
     box.className = 'modal-list';
     const loading = document.createElement('div'); loading.className = 'modal-empty'; loading.textContent = 'Ищем…'; box.append(loading);
     const { data, error } = await supabase.from('sync_profiles')
-      .select('id,username,display_name')
+      .select('id,username,display_name,avatar_url')
       .ilike('username', `${query}%`)
       .neq('id', authUser.id)
       .limit(8);
@@ -405,7 +530,7 @@
     data.forEach((person) => {
       const existing = friends.some((friend) => friend.id === person.id);
       const item = document.createElement('div'); item.className = 'modal-user-row';
-      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; avatar.textContent = initials(person.display_name);
+      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, person.display_name, person.avatar_url);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = person.display_name;
       const username = document.createElement('span'); username.textContent = `@${person.username}`;
@@ -434,7 +559,7 @@
     incomingRequests.forEach((request) => {
       const user = request.from_profile || {};
       const item = document.createElement('div'); item.className = 'modal-user-row';
-      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; avatar.textContent = initials(user.display_name || user.username);
+      const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, user.display_name || user.username, user.avatar_url);
       const info = document.createElement('div'); info.className = 'person-info';
       const name = document.createElement('strong'); name.textContent = user.display_name || 'Пользователь';
       const username = document.createElement('span'); username.textContent = `@${user.username || ''}`;
@@ -456,11 +581,11 @@
     showToast(accept ? 'Заявка принята' : 'Заявка отклонена');
   }
 
-  function addChatMessage(name, message, mine = false) {
+  function addChatMessage(name, message, mine = false, imageUrl = '') {
     if (!message) return;
     const welcome = $('#chatMessages .chat-welcome'); if (welcome) welcome.remove();
     const wrap = document.createElement('div'); wrap.className = 'chat-message';
-    const avatar = document.createElement('div'); avatar.className = 'person-avatar'; avatar.textContent = initials(name);
+    const avatar = document.createElement('div'); avatar.className = 'person-avatar'; paintAvatar(avatar, name, imageUrl || (mine ? avatarUrl() : ''));
     const body = document.createElement('div'); body.className = 'message-body';
     const meta = document.createElement('div'); meta.className = 'message-meta';
     const strong = document.createElement('strong'); strong.textContent = mine ? 'Вы' : name;
@@ -471,8 +596,8 @@
   }
 
   async function sendChatMessage(message) {
-    addChatMessage(displayName(), message, true);
-    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message } });
+    addChatMessage(displayName(), message, true, avatarUrl());
+    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), message, avatar_url: avatarUrl() } });
   }
 
   function selectProvider(name) {
@@ -570,6 +695,10 @@
 
   function bindEvents() {
     $('#authForm').addEventListener('submit', submitAuth);
+    $('#googleAuth').addEventListener('click', signInWithGoogle);
+    $('#chooseAvatar').addEventListener('click', () => $('#avatarFileInput').click());
+    $('#avatarUploadButton').addEventListener('click', () => $('#avatarFileInput').click());
+    $('#avatarFileInput').addEventListener('change', uploadAvatar);
     $('#authSwitch').addEventListener('click', () => setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
     $('#profileForm').addEventListener('submit', saveProfile);
     $('#logoutButton').addEventListener('click', signOut);
@@ -597,6 +726,9 @@
   }
 
   async function start() {
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      navigator.serviceWorker.register('./sw.js').catch((error) => console.warn('SYNC offline cache unavailable:', error));
+    }
     bindEvents();
     selectProvider('youtube');
     if (!initializeAuthUI()) return;

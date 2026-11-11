@@ -3,18 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0c0d12" />
+  <meta name="theme-color" content="#f5f3ef" />
   <meta name="description" content="SYNC — смотрите вместе с друзьями." />
-  <title>SYNC — смотреть вместе</title>
+  <title>SYNC — смотри вместе</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#watch" aria-label="SYNC — главная">
-      <span class="brand-icon"><i></i><i></i><i></i></span><span>sync</span>
+      <span class="brand-icon"><img src="icon.svg" alt="" /></span><span>SYNC</span>
     </a>
     <nav class="main-nav" aria-label="Навигация">
       <a class="nav-link active" href="#watch">Смотреть</a>
@@ -87,7 +90,7 @@
 
   <div class="auth-gate" id="authGate">
     <div class="auth-card">
-      <div class="auth-brand"><span class="brand-icon"><i></i><i></i><i></i></span><span>sync</span></div>
+      <div class="auth-brand"><span class="brand-icon"><img src="icon.svg" alt="" /></span><span>SYNC</span></div>
       <div id="setupNotice" class="setup-notice hidden">
         <div class="auth-mark">✳</div><h1>Подключи SYNC</h1>
         <p>Остался один технический шаг: добавь URL проекта Supabase и публичный anon key в <code>config.js</code>, затем обнови страницу.</p>
@@ -95,7 +98,9 @@
         <p class="auth-small">После этого здесь появится вход и регистрация. Не отправляй никому секретные ключи.</p>
       </div>
       <div id="authPanel" class="hidden">
-        <div class="auth-mark">✳</div><h1 id="authTitle">С возвращением</h1><p id="authSubtitle">Войди, чтобы смотреть вместе с друзьями.</p>
+        <div class="auth-mark">✦</div><h1 id="authTitle">С возвращением</h1><p id="authSubtitle">Твои люди. Ваше кино. Одно общее пространство.</p>
+        <button class="button button-google button-full" id="googleAuth" type="button"><span class="google-mark" aria-hidden="true">G</span> Продолжить с Google</button>
+        <div class="auth-divider"><span>или по почте</span></div>
         <form id="authForm" class="modal-form auth-form">
           <div id="signupFields" class="hidden"><label for="authDisplayName">Как тебя называть</label><input id="authDisplayName" type="text" maxlength="24" placeholder="Имя" autocomplete="nickname" /><label for="authUsername">Придумай ник</label><input id="authUsername" type="text" minlength="3" maxlength="20" placeholder="например, alex_07" autocomplete="username" /></div>
           <label for="authEmail">Электронная почта</label><input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
@@ -124,7 +129,15 @@
   <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
     <div class="modal-card">
       <button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button>
-      <span class="modal-icon">◎</span><span class="overline">АККАУНТ</span><h2 id="profileModalTitle">Твой профиль</h2>
+      <span class="modal-icon">✦</span><span class="overline">АККАУНТ</span><h2 id="profileModalTitle">Твой профиль</h2>
+      <div class="profile-photo-editor">
+        <button class="profile-photo-button" id="avatarUploadButton" type="button" aria-label="Изменить фото профиля">
+          <span class="profile-photo-preview" id="profileAvatarPreview">?</span>
+          <span class="profile-photo-badge">＋</span>
+        </button>
+        <div class="profile-photo-copy"><strong>Фото профиля</strong><span>JPG, PNG или WebP · до 3 МБ</span><button class="text-action" id="chooseAvatar" type="button">Загрузить фото</button></div>
+        <input class="visually-hidden" id="avatarFileInput" type="file" accept="image/png,image/jpeg,image/webp" />
+      </div>
       <form id="profileForm" class="modal-form"><label for="profileDisplayName">Имя</label><input id="profileDisplayName" type="text" maxlength="24" required /><label for="profileUsername">Ник</label><input id="profileUsername" type="text" minlength="3" maxlength="20" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form>
       <button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button>
     </div>
