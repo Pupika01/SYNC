@@ -693,7 +693,28 @@
   }
   function closeModal(id) { $(`#${id}`).classList.add('hidden'); }
 
+  function applyTheme(theme, persist = true) {
+    const isDark = theme === 'dark';
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+    const toggle = $('#themeToggle');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(isDark));
+      toggle.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+      toggle.title = isDark ? 'Светлая тема' : 'Тёмная тема';
+    }
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = isDark ? '#151619' : '#ffffff';
+    if (persist) {
+      try { localStorage.setItem('sync-theme', isDark ? 'dark' : 'light'); } catch (_) {}
+    }
+  }
+
   function bindEvents() {
+    const savedTheme = (() => { try { return localStorage.getItem('sync-theme'); } catch (_) { return null; } })();
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light', false);
+    $('#themeToggle').addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
     $('#authForm').addEventListener('submit', submitAuth);
     $('#googleAuth').addEventListener('click', signInWithGoogle);
     $('#chooseAvatar').addEventListener('click', () => $('#avatarFileInput').click());

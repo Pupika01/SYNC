@@ -1,14 +1,14 @@
 {
   "id": "./",
-  "name": "SYNC — смотри вместе",
+  "name": "SYNC — смотреть вместе",
   "short_name": "SYNC",
   "description": "Смотри видео вместе с друзьями, общайся и создавай комнаты",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f2ee",
-  "theme_color": "#f4f2ee",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "any",
   "icons": [
     {
