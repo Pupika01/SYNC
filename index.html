@@ -32,7 +32,7 @@
   <main id="appContent" class="app-layout">
     <section class="main-column" id="watch">
       <section class="room-head">
-        <div><h1>Смотрим вместе</h1><p class="room-sub"><span class="room-live"><i></i> комната открыта</span><span class="dot-sep">·</span><span id="roomHint">отправь ссылку, и друзья окажутся рядом</span></p></div>
+        <div><h1>Смотрим вместе</h1><p class="room-sub"><span class="room-live"><i></i> комната открыта</span><span class="dot-sep">·</span><span id="roomHint">создай комнату и выбери, что смотреть</span></p></div>
         <div class="room-actions"><button class="button button-quiet" id="newRoom" type="button">＋ Новая комната</button><button class="button button-primary" id="shareRoom" type="button">Пригласить <span>↗</span></button></div>
       </section>
 
@@ -41,51 +41,44 @@
           <div class="stage-empty" id="stagePlaceholder">
             <img class="stage-symbol" src="icon.svg" alt="" />
             <h2>Что будем смотреть?</h2>
-            <p>Открой каталог приложений и выбери, что будем смотреть вместе.</p>
-            <button class="button button-primary" id="findFromPlayer" type="button">＋ Выбрать приложение</button>
+            <p>Найди фильм, сериал или видео — SYNC предложит варианты из доступных источников.</p>
+            <button class="button button-primary" id="findFromPlayer" type="button">Выбрать видео</button>
           </div>
           <div class="embed-wrap hidden" id="embedWrap"></div>
           <div class="player-error hidden" id="playerError"></div>
           <div class="player-gesture hidden" id="playerGesture"><button class="button button-primary" id="startPlayback" type="button">▶ Начать общий просмотр</button><span>Браузер просит подтвердить запуск видео</span></div>
           <button class="fullscreen-control" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button>
         </div>
+        <div class="player-controls hidden" id="playerControls" aria-label="Управление просмотром">
+          <button class="player-control-button" id="playerPlayPause" type="button" aria-label="Пауза" title="Пауза">Ⅱ</button>
+          <input class="player-seek" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция видео" />
+          <span class="player-time" id="playerTime">0:00 / 0:00</span>
+          <button class="player-control-button player-volume" id="playerMute" type="button" aria-label="Выключить звук" title="Выключить звук">Звук</button>
+        </div>
         <div class="watch-meta">
-          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">Сейчас смотрим</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Выберите площадку ниже</span></div></div>
+          <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">Сейчас смотрим</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Пока комната пустая</span></div></div>
           <div class="sync-status"><span class="sync-dot"></span><span id="syncLabel">Подключение…</span></div>
         </div>
       </section>
 
       <section class="side-card chat-card" id="roomChat">
-        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><span class="chat-live"><i></i> онлайн</span></div>
-        <div class="voice-panel">
-          <div class="voice-copy"><span class="voice-icon" aria-hidden="true">♫</span><div><strong>Голосовая комната</strong><small id="voiceStatus">Микрофон выключен</small></div></div>
-          <div class="voice-actions"><button class="button button-primary voice-join" id="voiceToggle" type="button">Войти в голос</button><button class="button button-soft voice-mute" id="voiceMute" type="button" disabled>Микрофон выкл.</button></div>
-          <div class="voice-audio-dock" id="voiceAudioDock" aria-label="Голос участников"></div>
-        </div>
-        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Напиши что-нибудь или подключись к голосу.</div></div>
+        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><div class="chat-tools"><span class="voice-status" id="voiceStatus">Голос выключен</span><button class="voice-icon-button" id="voiceToggle" type="button" aria-label="Подключить голос" title="Подключить голос">♩</button><button class="voice-icon-button" id="voiceMute" type="button" aria-label="Выключить микрофон" title="Выключить микрофон" disabled>⌁</button><span class="chat-live"><i></i> онлайн</span></div></div>
+        <div class="voice-audio-dock" id="voiceAudioDock" aria-label="Голос участников"></div>
+        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Напиши что-нибудь, чтобы начать общение.</div></div>
         <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Написать сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
       </section>
 
-      <section class="providers-section" id="providers">
-        <div class="section-heading"><div><h2>Приложения</h2><p>Выбирай площадку для совместного просмотра.</p></div><button class="button button-soft app-picker-trigger" id="toggleProviders" type="button" aria-expanded="false" aria-controls="providerPicker"><span class="picker-plus" aria-hidden="true">＋</span> Каталог приложений</button></div>
-        <div class="provider-picker-panel is-collapsed" id="providerPicker">
-          <div class="provider-grid" id="providerRow">
-            <button class="provider-card youtube-card" data-provider="youtube" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/youtube/FF0033" alt="" loading="lazy" /><b class="logo-fallback">▶</b></span><span class="provider-copy"><strong>YouTube</strong><small>Поиск и плеер SYNC</small></span></button>
-            <button class="provider-card rutube-card" data-provider="rutube" type="button"><span class="provider-logo"><img src="https://www.google.com/s2/favicons?domain=rutube.ru&amp;sz=128" alt="" loading="lazy" /><b class="logo-fallback">R</b></span><span class="provider-copy"><strong>RUTUBE</strong><small>Поиск и плеер SYNC</small></span></button>
-            <button class="provider-card vk-card" data-provider="vk" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/vk/0077FF" alt="" loading="lazy" /><b class="logo-fallback">vk</b></span><span class="provider-copy"><strong>VK Видео</strong><small>Веб-версия VK</small></span></button>
-            <button class="provider-card netflix-card" data-provider="netflix" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/netflix/E50914" alt="" loading="lazy" /><b class="logo-fallback">N</b></span><span class="provider-copy"><strong>Netflix</strong><small>Веб-версия сервиса</small></span></button>
-            <button class="provider-card kp-card" data-provider="kinopoisk" type="button"><span class="provider-logo"><img src="https://www.google.com/s2/favicons?domain=kinopoisk.ru&amp;sz=128" alt="" loading="lazy" /><b class="logo-fallback">К</b></span><span class="provider-copy"><strong>Кинопоиск</strong><small>Веб-версия сервиса</small></span></button>
-            <button class="provider-card soundcloud-card" data-provider="soundcloud" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/soundcloud/FF5500" alt="" loading="lazy" /><b class="logo-fallback">SC</b></span><span class="provider-copy"><strong>SoundCloud</strong><small>Музыка и подкасты</small></span></button>
-          </div>
-          <p class="catalog-note">YouTube и RUTUBE можно запускать прямо в SYNC. Другие сервисы открываются в своей веб-версии, если не разрешают встроенный плеер.</p>
+      <section class="watch-search" id="watchSearch">
+        <div class="watch-search-heading">
+          <div><span class="workspace-eyebrow">ВЫБОР ПРОСМОТРА</span><h2>Что будем смотреть?</h2><p>Напиши название фильма, сериала или видео. SYNC поищет подходящие варианты и покажет, где их можно открыть.</p></div>
         </div>
-        <section class="provider-workspace hidden" id="providerWorkspace">
-          <div class="workspace-head"><div><div class="workspace-eyebrow">ВЫБРАННОЕ ПРИЛОЖЕНИЕ</div><h3 id="providerTitle">YouTube</h3><p id="providerDescription">Найди видео и запусти его для всех участников комнаты.</p></div><button class="icon-button" id="closeProvider" type="button" aria-label="Закрыть">×</button></div>
-          <form class="provider-search" id="providerSearchForm"><span>⌕</span><input id="providerSearchInput" type="search" placeholder="Название фильма, сериала или видео" maxlength="100" autocomplete="off" /><button class="button button-primary" id="providerSearchButton" type="submit">Найти</button></form>
-          <div class="provider-message" id="providerMessage">Выберите видео, чтобы начать общий просмотр.</div>
-          <a class="button button-soft provider-external hidden" id="providerExternal" href="#" target="_blank" rel="noopener noreferrer">Открыть веб-версию ↗</a>
-          <div class="search-results" id="searchResults" aria-live="polite"></div>
-        </section>
+        <form class="provider-search universal-search" id="providerSearchForm">
+          <span aria-hidden="true">⌕</span>
+          <input id="providerSearchInput" type="search" placeholder="Например, Железный человек" maxlength="100" autocomplete="off" />
+          <button class="button button-primary" id="providerSearchButton" type="submit">Найти</button>
+        </form>
+        <div class="provider-message" id="providerMessage">Сначала создай комнату или открой приглашение. После этого выбери видео — оно появится здесь у всех участников.</div>
+        <div class="search-results" id="searchResults" aria-live="polite"></div>
       </section>
     </section>
 
