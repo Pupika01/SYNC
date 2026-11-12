@@ -1,24 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E2633"/><stop offset=".55" stop-color="#111722"/><stop offset="1" stop-color="#0B0F17"/></linearGradient>
-    <linearGradient id="glass" gradientUnits="userSpaceOnUse" x1="8" y1="6" x2="30" y2="44"><stop stop-color="#9CC5FF"/><stop offset="1" stop-color="#6EA8FE"/></linearGradient>
-    <linearGradient id="lamp" gradientUnits="userSpaceOnUse" x1="22" y1="6" x2="44" y2="44"><stop stop-color="#FF8B93"/><stop offset="1" stop-color="#FF4D5A"/></linearGradient>
-    <radialGradient id="vig" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#ffffff" stop-opacity=".07"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>
-    <clipPath id="cl"><polygon points="0,0 27.5,0 22.5,48 0,48"/></clipPath>
-    <clipPath id="cr"><polygon points="30.5,0 48,0 48,48 25.5,48"/></clipPath>
-    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
-    <filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#29261F"/>
+      <stop offset="1" stop-color="#171613"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="120" y1="120" x2="390" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F0E4CF"/>
+      <stop offset="1" stop-color="#C9B18B"/>
+    </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-  <rect width="512" height="512" rx="116" fill="url(#vig)"/>
-  <circle cx="206" cy="268" r="118" fill="#6EA8FE" opacity=".26" filter="url(#blur)"/>
-  <circle cx="322" cy="244" r="112" fill="#FF4D5A" opacity=".30" filter="url(#blur)"/>
-  <g transform="translate(256 256) scale(8.8) translate(-25.4 -24)">
-    <g opacity=".9">
-      <path d="M15 9 L15 39 L39 24 Z" fill="none" stroke="#fff" stroke-opacity=".0" stroke-width="6"/>
-    </g>
-    <path d="M15 9 L15 39 L39 24 Z" fill="url(#glass)" stroke="url(#glass)" stroke-width="6" stroke-linejoin="round" clip-path="url(#cl)"/>
-    <path d="M15 9 L15 39 L39 24 Z" fill="url(#lamp)" stroke="url(#lamp)" stroke-width="6" stroke-linejoin="round" clip-path="url(#cr)"/>
-  </g>
-  <rect x="1.5" y="1.5" width="509" height="509" rx="114.5" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="3"/>
+  <rect width="512" height="512" rx="116" fill="url(#surface)"/>
+  <circle cx="256" cy="256" r="166" fill="#D8C5A5" opacity=".045"/>
+  <path d="M202 145c-12-7-27 2-27 16v190c0 14 15 23 27 16l154-95c12-7 12-25 0-32z" fill="url(#mark)"/>
+  <rect x="2" y="2" width="508" height="508" rx="114" fill="none" stroke="#E9DECC" stroke-opacity=".12" stroke-width="4"/>
 </svg>
