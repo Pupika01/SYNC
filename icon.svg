@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a3b44"/><stop offset=".55" stop-color="#0d2127"/><stop offset="1" stop-color="#060f12"/></linearGradient>
-    <linearGradient id="glass" gradientUnits="userSpaceOnUse" x1="8" y1="6" x2="30" y2="44"><stop stop-color="#c2f6ec"/><stop offset="1" stop-color="#55bfae"/></linearGradient>
-    <linearGradient id="lamp" gradientUnits="userSpaceOnUse" x1="22" y1="6" x2="44" y2="44"><stop stop-color="#ffe2b4"/><stop offset="1" stop-color="#eea34a"/></linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E2633"/><stop offset=".55" stop-color="#111722"/><stop offset="1" stop-color="#0B0F17"/></linearGradient>
+    <linearGradient id="glass" gradientUnits="userSpaceOnUse" x1="8" y1="6" x2="30" y2="44"><stop stop-color="#9CC5FF"/><stop offset="1" stop-color="#6EA8FE"/></linearGradient>
+    <linearGradient id="lamp" gradientUnits="userSpaceOnUse" x1="22" y1="6" x2="44" y2="44"><stop stop-color="#FF8B93"/><stop offset="1" stop-color="#FF4D5A"/></linearGradient>
     <radialGradient id="vig" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#ffffff" stop-opacity=".07"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></radialGradient>
     <clipPath id="cl"><polygon points="0,0 27.5,0 22.5,48 0,48"/></clipPath>
     <clipPath id="cr"><polygon points="30.5,0 48,0 48,48 25.5,48"/></clipPath>
@@ -11,8 +11,8 @@
   </defs>
   <rect width="512" height="512" rx="116" fill="url(#bg)"/>
   <rect width="512" height="512" rx="116" fill="url(#vig)"/>
-  <circle cx="206" cy="268" r="118" fill="#7fd4c5" opacity=".26" filter="url(#blur)"/>
-  <circle cx="322" cy="244" r="112" fill="#f0b46c" opacity=".30" filter="url(#blur)"/>
+  <circle cx="206" cy="268" r="118" fill="#6EA8FE" opacity=".26" filter="url(#blur)"/>
+  <circle cx="322" cy="244" r="112" fill="#FF4D5A" opacity=".30" filter="url(#blur)"/>
   <g transform="translate(256 256) scale(8.8) translate(-25.4 -24)">
     <g opacity=".9">
       <path d="M15 9 L15 39 L39 24 Z" fill="none" stroke="#fff" stroke-opacity=".0" stroke-width="6"/>

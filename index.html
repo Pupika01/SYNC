@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0c181c" />
+  <meta name="theme-color" content="#0B0F17" />
   <meta name="description" content="SYNC — смотри вместе с друзьями." />
   <title>SYNC — Что будем смотреть?</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -41,8 +41,8 @@
           <div class="stage-empty" id="stagePlaceholder">
             <img class="stage-symbol" src="icon.svg" alt="" />
             <h2>Что будем смотреть?</h2>
-            <p>Выберите YouTube или RUTUBE ниже, и видео появится у всех в комнате.</p>
-            <button class="button button-primary" id="findFromPlayer" type="button">Выбрать площадку <span>↓</span></button>
+            <p>Открой каталог приложений и выбери, что будем смотреть вместе.</p>
+            <button class="button button-primary" id="findFromPlayer" type="button">＋ Выбрать приложение</button>
           </div>
           <div class="embed-wrap hidden" id="embedWrap"></div>
           <div class="player-error hidden" id="playerError"></div>
@@ -55,19 +55,35 @@
         </div>
       </section>
 
+      <section class="side-card chat-card" id="roomChat">
+        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><span class="chat-live"><i></i> онлайн</span></div>
+        <div class="voice-panel">
+          <div class="voice-copy"><span class="voice-icon" aria-hidden="true">♫</span><div><strong>Голосовая комната</strong><small id="voiceStatus">Микрофон выключен</small></div></div>
+          <div class="voice-actions"><button class="button button-primary voice-join" id="voiceToggle" type="button">Войти в голос</button><button class="button button-soft voice-mute" id="voiceMute" type="button" disabled>Микрофон выкл.</button></div>
+          <div class="voice-audio-dock" id="voiceAudioDock" aria-label="Голос участников"></div>
+        </div>
+        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Напиши что-нибудь или подключись к голосу.</div></div>
+        <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Написать сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
+      </section>
+
       <section class="providers-section" id="providers">
-        <div class="section-heading"><h2>Где смотрим?</h2><p>Нажми на площадку, чтобы найти видео прямо в SYNC.</p></div>
-        <div class="provider-grid" id="providerRow">
-          <button class="provider-card youtube-card" data-provider="youtube" type="button"><span class="provider-logo youtube-logo" aria-hidden="true"><svg viewBox="0 0 48 34"><rect x="1" y="1" width="46" height="32" rx="10" fill="#ff0033"/><path d="M20 10.5 32 17 20 23.5Z" fill="white"/></svg></span><span class="provider-copy"><strong>YouTube</strong><small>Смотреть вместе</small></span></button>
-          <button class="provider-card rutube-card" data-provider="rutube" type="button"><span class="provider-logo rutube-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><defs><linearGradient id="rtg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff4f78"/><stop offset="1" stop-color="#7c45ff"/></linearGradient></defs><path d="M9 10h18c8 0 13 4 13 11 0 5-3 9-8 10l8 8H27l-8-8h-1v8H9V10Zm9 8v6h9c2 0 4-1 4-3s-2-3-4-3h-9Z" fill="url(#rtg)"/></svg></span><span class="provider-copy"><strong>RUTUBE</strong><small>Смотреть вместе</small></span></button>
-          <button class="provider-card vk-card" data-provider="vk" type="button"><span class="provider-logo vk-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#0878f9"/><path d="M10 15h6c.5 0 .8.3 1 1 1.8 5.2 4.1 8.2 5.8 9.2.5.3.9.1.9-.5v-7.7c-.1-1.1-.6-1.5-1.6-1.8V15h9.4c.8 0 1 .4.8 1.2-.5 1.4-.8 3.7-.8 6.7v2.2c0 .7.4.9 1 .4 2-1.5 4.1-5.3 5.4-9.4.2-.7.6-1.1 1.4-1.1h5.1c1 0 1.3.5 1 1.4-1.3 3.5-3.2 6.7-5.4 9.3-.5.5-.5 1 .1 1.5 2.1 1.8 4.4 4.3 5.7 7 .4.8.1 1.3-.8 1.3h-5.8c-.8 0-1.2-.3-1.7-1-1.5-2.2-3.1-3.9-4.5-4.8-.7-.5-1.1-.2-1.1.6v3.9c0 .8-.4 1.3-1.3 1.3h-2.8c-7.8 0-13.7-5.3-17.7-15.9-.3-.8 0-1.2.9-1.2Z" fill="white" transform="translate(-3 -2) scale(.95)"/></svg></span><span class="provider-copy"><strong>VK Видео</strong><small>Скоро</small></span></button>
-          <button class="provider-card netflix-card" data-provider="netflix" type="button"><span class="provider-logo netflix-logo" aria-hidden="true"><svg viewBox="0 0 38 48"><path d="M5 3h8l12 31V3h8v42l-8 0L13 14v31H5Z" fill="#e50914"/><path d="M5 3h8l20 42h-8Z" fill="#b20710" opacity=".65"/></svg></span><span class="provider-copy"><strong>Netflix</strong><small>Нельзя встроить</small></span></button>
-          <button class="provider-card kp-card" data-provider="kinopoisk" type="button"><span class="provider-logo kp-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#f2a900"/><path d="M14 9h7v13l11-13h9L28 23l14 16h-9L21 25v14h-7Z" fill="#211323"/></svg></span><span class="provider-copy"><strong>Кинопоиск</strong><small>Нельзя встроить</small></span></button>
+        <div class="section-heading"><div><h2>Приложения</h2><p>Выбирай площадку для совместного просмотра.</p></div><button class="button button-soft app-picker-trigger" id="toggleProviders" type="button" aria-expanded="false" aria-controls="providerPicker"><span class="picker-plus" aria-hidden="true">＋</span> Каталог приложений</button></div>
+        <div class="provider-picker-panel is-collapsed" id="providerPicker">
+          <div class="provider-grid" id="providerRow">
+            <button class="provider-card youtube-card" data-provider="youtube" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/youtube/FF0033" alt="" loading="lazy" /><b class="logo-fallback">▶</b></span><span class="provider-copy"><strong>YouTube</strong><small>Поиск и плеер SYNC</small></span></button>
+            <button class="provider-card rutube-card" data-provider="rutube" type="button"><span class="provider-logo"><img src="https://www.google.com/s2/favicons?domain=rutube.ru&amp;sz=128" alt="" loading="lazy" /><b class="logo-fallback">R</b></span><span class="provider-copy"><strong>RUTUBE</strong><small>Поиск и плеер SYNC</small></span></button>
+            <button class="provider-card vk-card" data-provider="vk" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/vk/0077FF" alt="" loading="lazy" /><b class="logo-fallback">vk</b></span><span class="provider-copy"><strong>VK Видео</strong><small>Веб-версия VK</small></span></button>
+            <button class="provider-card netflix-card" data-provider="netflix" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/netflix/E50914" alt="" loading="lazy" /><b class="logo-fallback">N</b></span><span class="provider-copy"><strong>Netflix</strong><small>Веб-версия сервиса</small></span></button>
+            <button class="provider-card kp-card" data-provider="kinopoisk" type="button"><span class="provider-logo"><img src="https://www.google.com/s2/favicons?domain=kinopoisk.ru&amp;sz=128" alt="" loading="lazy" /><b class="logo-fallback">К</b></span><span class="provider-copy"><strong>Кинопоиск</strong><small>Веб-версия сервиса</small></span></button>
+            <button class="provider-card soundcloud-card" data-provider="soundcloud" type="button"><span class="provider-logo"><img src="https://cdn.simpleicons.org/soundcloud/FF5500" alt="" loading="lazy" /><b class="logo-fallback">SC</b></span><span class="provider-copy"><strong>SoundCloud</strong><small>Музыка и подкасты</small></span></button>
+          </div>
+          <p class="catalog-note">YouTube и RUTUBE можно запускать прямо в SYNC. Другие сервисы открываются в своей веб-версии, если не разрешают встроенный плеер.</p>
         </div>
         <section class="provider-workspace hidden" id="providerWorkspace">
-          <div class="workspace-head"><div><h3 id="providerTitle">YouTube</h3><p id="providerDescription">Найди видео и запусти его для всех участников комнаты.</p></div><button class="icon-button" id="closeProvider" type="button" aria-label="Закрыть">×</button></div>
-          <form class="provider-search" id="providerSearchForm"><span>⌕</span><input id="providerSearchInput" type="search" placeholder="Название фильма, сериала или видео" maxlength="100" autocomplete="off" /><button class="button button-primary" type="submit">Найти</button></form>
+          <div class="workspace-head"><div><div class="workspace-eyebrow">ВЫБРАННОЕ ПРИЛОЖЕНИЕ</div><h3 id="providerTitle">YouTube</h3><p id="providerDescription">Найди видео и запусти его для всех участников комнаты.</p></div><button class="icon-button" id="closeProvider" type="button" aria-label="Закрыть">×</button></div>
+          <form class="provider-search" id="providerSearchForm"><span>⌕</span><input id="providerSearchInput" type="search" placeholder="Название фильма, сериала или видео" maxlength="100" autocomplete="off" /><button class="button button-primary" id="providerSearchButton" type="submit">Найти</button></form>
           <div class="provider-message" id="providerMessage">Выберите видео, чтобы начать общий просмотр.</div>
+          <a class="button button-soft provider-external hidden" id="providerExternal" href="#" target="_blank" rel="noopener noreferrer">Открыть веб-версию ↗</a>
           <div class="search-results" id="searchResults" aria-live="polite"></div>
         </section>
       </section>
@@ -85,11 +101,7 @@
         <div class="friends-list" id="friendsList"><div class="empty-friends"><span class="empty-friends-icon">✳</span><span>Найди друзей по имени</span></div></div>
       </section>
 
-      <section class="side-card chat-card">
-        <div class="card-heading chat-heading"><div><h2>Чат</h2></div><span class="chat-live"><i></i> онлайн</span></div>
-        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Общайтесь, пока идёт фильм.</div></div>
-        <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
-      </section>
+
     </aside>
   </main>
 

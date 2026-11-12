@@ -5,11 +5,12 @@
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const config = window.SYNC_CONFIG || {};
   const providers = {
-    youtube: { name: 'YouTube', description: 'Ищи видео прямо здесь. Выбранный ролик откроется в общей комнате.' },
-    rutube: { name: 'RUTUBE', description: 'Ищи публичные видео и запускай встроенный плеер для всех участников.' },
-    vk: { name: 'VK Видео', description: 'Подключение встроенного каталога VK Видео пока готовится.' },
-    netflix: { name: 'Netflix', description: 'Netflix использует защищённый плеер, который нельзя встроить в сторонний сайт.' },
-    kinopoisk: { name: 'Кинопоиск', description: 'Кинопоиск использует защищённый плеер, который нельзя встроить в сторонний сайт.' }
+    youtube: { name: 'YouTube', description: 'Ищи видео прямо здесь. Выбранный ролик откроется в общей комнате.', embedded: true },
+    rutube: { name: 'RUTUBE', description: 'Ищи публичные видео и запускай встроенный плеер для всех участников.', embedded: true },
+    vk: { name: 'VK Видео', description: 'Откроем поиск VK Видео в отдельной вкладке: встроенный просмотр зависит от ограничений VK.', url: 'https://vk.com/video?q=' },
+    netflix: { name: 'Netflix', description: 'Netflix использует защищённый плеер. Внешний просмотр возможен в своей учётной записи, но встроить его в SYNC нельзя.', url: 'https://www.netflix.com/search?q=' },
+    kinopoisk: { name: 'Кинопоиск', description: 'Откроем поиск Кинопоиска. Защищённое воспроизведение сервиса нельзя встроить в стороннюю страницу.', url: 'https://www.kinopoisk.ru/index.php?kp_query=' },
+    soundcloud: { name: 'SoundCloud', description: 'Найди музыку, миксы и подкасты в веб-версии SoundCloud. Встроенный плеер можно будет добавить для совместимых публичных треков.', url: 'https://soundcloud.com/search?q=' }
   };
 
   let supabase = null;
@@ -40,6 +41,11 @@
   let lastPersistAt = 0;
   let toastTimer = null;
   let bootstrapping = false;
+  let voiceEnabled = false;
+  let voiceMuted = false;
+  let localAudioStream = null;
+  const voicePeers = new Map();
+  const pendingVoiceCandidates = new Map();
   const presenceSessionId = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 
   const initials = (name) => (String(name || '?').trim().replace(/^@/, '').slice(0, 1) || '?').toLocaleUpperCase('ru-RU');
@@ -215,7 +221,14 @@
   }
 
   function presencePayload() {
-    return { user_id: authUser.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url || null };
+    return {
+      user_id: authUser.id,
+      username: profile.username,
+      display_name: profile.display_name,
+      avatar_url: profile.avatar_url || null,
+      session_id: presenceSessionId,
+      voice_enabled: voiceEnabled
+    };
   }
   async function trackSelf() {
     try {
@@ -298,6 +311,7 @@
   }
 
   function resetRoomState() {
+    stopVoiceLocally();
     currentRoom = null; inviteToken = null; roomOwnerId = null; currentVideo = null; pendingRemotePlayback = null;
     clearTimeout(autoplayTimer);
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
@@ -305,9 +319,9 @@
     rutubeReady = false;
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerError').classList.add('hidden');
-    $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = 'Выберите площадку ниже'; $('#videoCover').textContent = 'S';
+    $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = 'Откройте каталог приложений'; $('#videoCover').textContent = 'S';
     $('#chatMessages').replaceChildren();
-    const welcome = document.createElement('div'); welcome.className = 'chat-welcome'; welcome.textContent = 'Общайтесь, пока идёт фильм.'; $('#chatMessages').append(welcome);
+    const welcome = document.createElement('div'); welcome.className = 'chat-welcome'; welcome.textContent = 'Напиши что-нибудь или подключись к голосу.'; $('#chatMessages').append(welcome);
     const url = new URL(location.href); url.searchParams.delete('room'); url.searchParams.delete('invite'); history.replaceState({}, '', url);
   }
 
@@ -397,14 +411,21 @@
 
   async function connectRoom() {
     if (!currentRoom) return;
-    if (roomChannel) await supabase.removeChannel(roomChannel);
+    if (roomChannel) {
+      if (voiceEnabled) {
+        for (const sessionId of [...voicePeers.keys()]) await sendVoiceSignal(sessionId, { type: 'leave' });
+        stopVoiceLocally();
+      }
+      await supabase.removeChannel(roomChannel);
+    }
     roomChannel = supabase.channel(`sync-room:${currentRoom}`, {
       config: { private: true, presence: { key: `${authUser.id}:${presenceSessionId}` }, broadcast: { self: false } }
     });
     roomChannel
-      .on('presence', { event: 'sync' }, renderMembers)
-      .on('presence', { event: 'join' }, renderMembers)
-      .on('presence', { event: 'leave' }, renderMembers)
+      .on('presence', { event: 'sync' }, () => { renderMembers(); syncVoicePeers(); })
+      .on('presence', { event: 'join' }, () => { renderMembers(); syncVoicePeers(); })
+      .on('presence', { event: 'leave' }, () => { renderMembers(); cleanupStaleVoicePeers(); syncVoicePeers(); })
+      .on('broadcast', { event: 'voice-signal' }, ({ payload }) => handleVoiceSignal(payload))
       .on('broadcast', { event: 'chat' }, ({ payload }) => {
         if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '', false, payload?.avatar_url || '', payload?.created_at || Date.now());
       })
@@ -430,6 +451,7 @@
         await roomChannel.track(presencePayload());
         renderMembers();
         $('#syncLabel').textContent = 'Комната синхронизирована';
+        syncVoicePeers();
         loadPersistedRoomState();
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         $('#syncLabel').textContent = 'Нет соединения';
@@ -618,6 +640,188 @@
     showToast(accept ? 'Заявка принята' : 'Заявка отклонена');
   }
 
+  // Voice chat uses WebRTC media streams; Supabase Realtime is only the signaling channel.
+  function getRoomPresence() {
+    const state = roomChannel?.presenceState?.() || {};
+    return Object.values(state).flat().filter((person) => person?.session_id && person.user_id);
+  }
+
+  function updateVoiceUI(statusText) {
+    const toggle = $('#voiceToggle');
+    const mute = $('#voiceMute');
+    if (!toggle || !mute) return;
+    toggle.textContent = voiceEnabled ? 'Выйти из голоса' : 'Войти в голос';
+    toggle.classList.toggle('button-primary', !voiceEnabled);
+    toggle.classList.toggle('button-soft', voiceEnabled);
+    mute.disabled = !voiceEnabled;
+    mute.textContent = voiceMuted ? 'Включить микрофон' : 'Микрофон вкл.';
+    $('#voiceStatus').textContent = statusText || (voiceEnabled ? `Микрофон включён · участников: ${voicePeers.size + 1}` : 'Микрофон выключен');
+  }
+
+  function closeVoicePeer(sessionId) {
+    const peer = voicePeers.get(sessionId);
+    if (peer) {
+      try { peer.connection.ontrack = null; peer.connection.onicecandidate = null; peer.connection.close(); } catch {}
+      peer.audio?.remove();
+      voicePeers.delete(sessionId);
+    }
+    pendingVoiceCandidates.delete(sessionId);
+    if (voiceEnabled) updateVoiceUI();
+  }
+
+  function stopVoiceLocally() {
+    voiceEnabled = false;
+    voiceMuted = false;
+    for (const sessionId of [...voicePeers.keys()]) closeVoicePeer(sessionId);
+    if (localAudioStream) localAudioStream.getTracks().forEach((track) => track.stop());
+    localAudioStream = null;
+    $('#voiceAudioDock')?.replaceChildren();
+    updateVoiceUI();
+  }
+
+  async function sendVoiceSignal(targetSessionId, signal) {
+    if (!roomChannel || !authUser) return;
+    await roomChannel.send({
+      type: 'broadcast',
+      event: 'voice-signal',
+      payload: {
+        from_user_id: authUser.id,
+        from_session_id: presenceSessionId,
+        target_session_id: targetSessionId,
+        signal
+      }
+    });
+  }
+
+  function makeVoicePeer(person) {
+    if (voicePeers.has(person.session_id) || !localAudioStream) return voicePeers.get(person.session_id)?.connection;
+    const connection = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+    localAudioStream.getTracks().forEach((track) => connection.addTrack(track, localAudioStream));
+    const audio = document.createElement('audio');
+    audio.autoplay = true;
+    audio.playsInline = true;
+    audio.dataset.sessionId = person.session_id;
+    audio.setAttribute('aria-label', `Голос ${person.display_name || 'участника'}`);
+    $('#voiceAudioDock').append(audio);
+    voicePeers.set(person.session_id, { connection, audio, name: person.display_name || 'Участник' });
+    connection.ontrack = (event) => {
+      audio.srcObject = event.streams?.[0] || new MediaStream([event.track]);
+      audio.play?.().catch(() => showToast('Нажми на экран, чтобы разрешить звук собеседника'));
+    };
+    connection.onicecandidate = (event) => {
+      if (event.candidate) sendVoiceSignal(person.session_id, { type: 'candidate', candidate: event.candidate.toJSON?.() || event.candidate });
+    };
+    connection.onconnectionstatechange = () => {
+      if (connection.connectionState === 'failed' || connection.connectionState === 'closed') closeVoicePeer(person.session_id);
+      else updateVoiceUI(connection.connectionState === 'connected' ? `На связи: ${voicePeers.size} · микрофон включён` : 'Подключаем голос участников…');
+    };
+    return connection;
+  }
+
+  async function syncVoicePeers() {
+    if (!voiceEnabled || !localAudioStream || !roomChannel) return;
+    const people = getRoomPresence().filter((person) => person.voice_enabled && person.session_id !== presenceSessionId);
+    for (const person of people) {
+      // Only one side creates the offer for a given pair, preventing offer collisions.
+      if (presenceSessionId.localeCompare(person.session_id) > 0 || voicePeers.has(person.session_id)) continue;
+      try {
+        const connection = makeVoicePeer(person);
+        if (!connection) continue;
+        const offer = await connection.createOffer();
+        await connection.setLocalDescription(offer);
+        await sendVoiceSignal(person.session_id, { type: 'description', description: connection.localDescription.toJSON() });
+      } catch (error) {
+        console.warn('SYNC voice offer failed:', error);
+        showToast('Не удалось подключить голосового участника');
+      }
+    }
+    updateVoiceUI();
+  }
+
+  function cleanupStaleVoicePeers() {
+    const activeSessions = new Set(getRoomPresence().map((person) => person.session_id));
+    for (const sessionId of [...voicePeers.keys()]) if (!activeSessions.has(sessionId)) closeVoicePeer(sessionId);
+  }
+
+  async function handleVoiceSignal(payload) {
+    if (!payload || payload.target_session_id !== presenceSessionId || payload.from_session_id === presenceSessionId) return;
+    const sender = getRoomPresence().find((person) => person.session_id === payload.from_session_id);
+    if (!sender) return;
+    const signal = payload.signal || {};
+    if (signal.type === 'leave') return closeVoicePeer(payload.from_session_id);
+    if (!voiceEnabled || !localAudioStream) return;
+    try {
+      let peer = voicePeers.get(payload.from_session_id);
+      if (signal.type === 'description' && signal.description?.type === 'offer') {
+        const connection = makeVoicePeer(sender);
+        await connection.setRemoteDescription(new RTCSessionDescription(signal.description));
+        const queued = pendingVoiceCandidates.get(payload.from_session_id) || [];
+        for (const candidate of queued) await connection.addIceCandidate(new RTCIceCandidate(candidate));
+        pendingVoiceCandidates.delete(payload.from_session_id);
+        const answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        await sendVoiceSignal(payload.from_session_id, { type: 'description', description: connection.localDescription.toJSON() });
+        return;
+      }
+      if (signal.type === 'description' && signal.description?.type === 'answer') {
+        if (!peer) return;
+        await peer.connection.setRemoteDescription(new RTCSessionDescription(signal.description));
+        const queued = pendingVoiceCandidates.get(payload.from_session_id) || [];
+        for (const candidate of queued) await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+        pendingVoiceCandidates.delete(payload.from_session_id);
+        return;
+      }
+      if (signal.type === 'candidate' && signal.candidate) {
+        if (peer?.connection.remoteDescription) await peer.connection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        else {
+          const pending = pendingVoiceCandidates.get(payload.from_session_id) || [];
+          pending.push(signal.candidate);
+          pendingVoiceCandidates.set(payload.from_session_id, pending);
+        }
+      }
+    } catch (error) {
+      console.warn('SYNC voice signaling failed:', error);
+      showToast('Голос не подключился. Попробуй переподключиться.');
+    }
+  }
+
+  async function toggleVoice() {
+    if (voiceEnabled) {
+      const peers = [...voicePeers.keys()];
+      for (const sessionId of peers) await sendVoiceSignal(sessionId, { type: 'leave' });
+      stopVoiceLocally();
+      if (roomChannel) await roomChannel.track(presencePayload());
+      return;
+    }
+    if (!currentRoom || !roomChannel) return showToast('Сначала дождись подключения к комнате');
+    if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) return showToast('Этот браузер не поддерживает голосовой чат');
+    try {
+      localAudioStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false
+      });
+      voiceEnabled = true;
+      voiceMuted = false;
+      await roomChannel.track(presencePayload());
+      updateVoiceUI('Микрофон включён · ищем участников…');
+      await syncVoicePeers();
+      showToast('Голосовой чат включён');
+    } catch (error) {
+      stopVoiceLocally();
+      const message = error?.name === 'NotAllowedError' ? 'Разреши доступ к микрофону в браузере' : error?.name === 'NotFoundError' ? 'Не найден микрофон' : 'Не удалось включить микрофон';
+      showToast(message);
+    }
+  }
+
+  function toggleVoiceMute() {
+    if (!voiceEnabled || !localAudioStream) return;
+    voiceMuted = !voiceMuted;
+    localAudioStream.getAudioTracks().forEach((track) => { track.enabled = !voiceMuted; });
+    updateVoiceUI(voiceMuted ? 'Микрофон выключен для остальных' : `Микрофон включён · участников: ${voicePeers.size + 1}`);
+  }
+
   function addChatMessage(name, message, mine = false, avatarUrl = '', createdAt = Date.now()) {
     if (!message) return;
     const welcome = $('#chatMessages .chat-welcome'); if (welcome) welcome.remove();
@@ -640,29 +844,40 @@
     if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), avatar_url: profile?.avatar_url || null, message, created_at: createdAt } });
   }
 
+  function providerSearchUrl(name, query = '') {
+    const target = providers[name]?.url;
+    return target ? `${target}${encodeURIComponent(query)}` : '';
+  }
+
   function selectProvider(name) {
     provider = providers[name] ? name : 'youtube';
     $$('.provider-card').forEach((card) => card.classList.toggle('selected', card.dataset.provider === provider));
+    $('#providerPicker').classList.add('is-collapsed');
+    $('#toggleProviders').setAttribute('aria-expanded', 'false');
     $('#providerWorkspace').classList.remove('hidden');
     $('#providerTitle').textContent = providers[provider].name;
     $('#providerDescription').textContent = providers[provider].description;
-    $('#providerSearchForm').classList.toggle('hidden', !['youtube', 'rutube'].includes(provider));
+    $('#providerSearchForm').classList.remove('hidden');
     $('#searchResults').replaceChildren();
+    const external = $('#providerExternal');
+    const submit = $('#providerSearchButton');
+    const input = $('#providerSearchInput');
     const message = $('#providerMessage');
     message.classList.remove('hidden');
-    if (provider === 'youtube') {
-      message.textContent = 'Ищи видео здесь. Нажми «Смотреть вместе», и ролик появится у всех в комнате.';
-      $('#providerSearchInput').placeholder = 'Что найти на YouTube?';
-    } else if (provider === 'rutube') {
-      message.textContent = 'Ищи публичные видео RUTUBE. Поиск использует открытый endpoint площадки и может временно ограничиваться самим RUTUBE.';
-      $('#providerSearchInput').placeholder = 'Что найти на RUTUBE?';
+    input.value = '';
+    if (providers[provider].embedded) {
+      external.classList.add('hidden');
+      submit.textContent = 'Найти';
+      input.placeholder = provider === 'youtube' ? 'Что найти на YouTube?' : 'Что найти на RUTUBE?';
+      message.textContent = provider === 'youtube'
+        ? 'Ищи видео здесь. Нажми «Смотреть вместе», и ролик появится у всех в комнате.'
+        : 'Ищи публичные видео RUTUBE. Выбранный ролик откроется во встроенном плеере SYNC для всех участников.';
     } else {
-      const messages = {
-        vk: 'Встроенный поиск VK Видео пока не подключён. Внешнюю страницу не открываем: добавим официальный API/виджет, когда будет доступ к интеграции.',
-        netflix: 'Netflix не разрешает сторонним сайтам встраивать защищённый видеоплеер. Поэтому нельзя запустить один и тот же фильм внутри SYNC на двух устройствах через обычный iframe.',
-        kinopoisk: 'Кинопоиск использует защищённое воспроизведение и не предоставляет SYNC открытый плеер для встраивания. Внешнюю вкладку без твоего согласия не открываем.'
-      };
-      message.textContent = messages[provider];
+      external.classList.remove('hidden');
+      external.href = providerSearchUrl(provider);
+      submit.textContent = 'Открыть поиск ↗';
+      input.placeholder = `Что найти на ${providers[provider].name}?`;
+      message.textContent = `${providers[provider].description} Введи запрос и нажми «Открыть поиск». SYNC останется открытым, а веб-версия запустится в новой вкладке.`;
     }
     $('#providerWorkspace').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -675,7 +890,15 @@
   async function searchVideos(query) {
     const cleaned = String(query || '').trim();
     if (!cleaned) { showToast('Напиши, что ищем'); $('#providerSearchInput').focus(); return; }
-    if (!['youtube', 'rutube'].includes(provider)) return renderSearchNotice('Поиск этой площадки пока не подключён.');
+    if (!providers[provider]?.embedded) {
+      const target = providerSearchUrl(provider, cleaned);
+      if (!target) return showToast('Для этой площадки пока нет адреса поиска.');
+      $('#providerExternal').href = target;
+      const opened = window.open(target, '_blank', 'noopener,noreferrer');
+      if (!opened) showToast('Браузер заблокировал новую вкладку. Нажми «Открыть веб-версию».');
+      else showToast(`Открываем ${providers[provider].name} в новой вкладке`);
+      return;
+    }
     const submit = $('#providerSearchForm button[type="submit"]');
     submit.disabled = true; submit.textContent = 'Ищем…';
     renderSearchNotice(`Ищем «${cleaned}» на ${providers[provider].name}…`);
@@ -948,12 +1171,33 @@
     });
     $('#logoutButton').addEventListener('click', signOut);
     $('#profileButton').addEventListener('click', () => { updateProfileUI(); openModal('profileModal'); });
+    $$('.provider-logo img').forEach((image) => {
+      image.addEventListener('error', () => {
+        image.hidden = true;
+        const fallback = image.parentElement?.querySelector('.logo-fallback');
+        if (fallback) fallback.style.display = 'grid';
+      }, { once: true });
+    });
     $$('.provider-card').forEach((card) => card.addEventListener('click', () => selectProvider(card.dataset.provider)));
+    $('#toggleProviders').addEventListener('click', () => {
+      const panel = $('#providerPicker');
+      const opening = panel.classList.contains('is-collapsed');
+      panel.classList.toggle('is-collapsed', !opening);
+      $('#toggleProviders').setAttribute('aria-expanded', String(opening));
+      if (opening) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
     $('#providerSearchForm').addEventListener('submit', (event) => { event.preventDefault(); searchVideos($('#providerSearchInput').value); });
     $('#closeProvider').addEventListener('click', () => $('#providerWorkspace').classList.add('hidden'));
-    $('#findFromPlayer').addEventListener('click', () => $('#providers').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    $('#findFromPlayer').addEventListener('click', () => {
+      $('#providerPicker').classList.remove('is-collapsed');
+      $('#toggleProviders').setAttribute('aria-expanded', 'true');
+      $('#providers').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('#voiceToggle').addEventListener('click', toggleVoice);
+    $('#voiceMute').addEventListener('click', toggleVoiceMute);
     $('#startPlayback').addEventListener('click', enablePlaybackFromGesture);
     window.addEventListener('message', handleRutubeMessage);
+    window.addEventListener('pagehide', stopVoiceLocally);
     $('#inviteTop').addEventListener('click', () => shareRoom());
     $('#invitePeople').addEventListener('click', () => shareRoom());
     $('#shareRoom').addEventListener('click', () => shareRoom());
