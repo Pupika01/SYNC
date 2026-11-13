@@ -546,3 +546,47 @@ a:focus-visible{color:var(--lamp)}
   .chat-tools{gap:5px}
   .voice-icon-button{width:29px;height:29px}
 }
+
+/* SYNC usability pass: accessible states, compact navigation and mobile comfort */
+body.modal-open{overflow:hidden}
+.modal-card{max-height:min(88dvh,760px);overflow-y:auto;overscroll-behavior:contain}
+.modal-card:focus{outline:none}
+.modal-user-row{min-width:0;flex-wrap:wrap}
+.modal-user-row .person-info{min-width:90px}
+.button:disabled,.round-button:disabled,.text-action:disabled{opacity:.42;cursor:not-allowed;transform:none}
+.install-app-button{height:38px;padding:0 13px;border-radius:11px;font-size:12px}
+.chat-messages{overscroll-behavior:contain;scrollbar-gutter:stable}
+.message-text{white-space:pre-wrap}
+.result-card:focus-within{outline:2px solid var(--link);outline-offset:2px}
+#watch,#roomChat,#watchSearch,#friends{scroll-margin-top:84px}
+.provider-message{line-height:1.5}
+.player-control-button:focus-visible,.voice-icon-button:focus-visible,.fullscreen-control:focus-visible{outline:2px solid var(--link);outline-offset:3px}
+
+@media(max-width:1000px){
+  .main-nav{display:flex;gap:3px;margin-left:auto;margin-right:0}
+  .top-actions{margin-left:0;gap:8px}
+  .nav-link{padding:8px 11px}
+}
+@media(max-width:640px){
+  .topbar{gap:9px;padding-left:12px;padding-right:12px}
+  .main-nav{gap:1px}
+  .main-nav .nav-link{padding:7px 8px;font-size:12px}
+  .top-actions{gap:6px}
+  .profile-avatar{width:36px;height:36px}
+  .install-app-button{height:34px;padding:0 8px;font-size:10px}
+  .chat-form input,.universal-search input{font-size:16px}
+  .modal-backdrop{align-items:start;padding:12px}
+  .modal-card{max-height:calc(100dvh - 24px);border-radius:18px}
+  .chat-messages{height:230px;min-height:170px}
+}
+@media(max-width:380px){
+  .brand{font-size:19px;gap:6px}
+  .brand-icon{width:27px;height:27px}
+  .main-nav .nav-link{padding:6px;font-size:11px}
+  .install-app-button{display:none!important}
+  .topbar{gap:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .result-card,.button,.nav-link{transition:none!important}
+}

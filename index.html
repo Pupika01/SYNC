@@ -24,7 +24,8 @@
       <button class="nav-link nav-button" id="friendsNav" type="button">Друзья</button>
     </nav>
     <div class="top-actions">
-      <button class="button button-soft button-invite" id="inviteTop" type="button"><span>↗</span> Пригласить</button>
+      <button class="button button-soft button-invite" id="inviteTop" type="button" disabled><span>↗</span> Пригласить</button>
+      <button class="button button-soft install-app-button hidden" id="installApp" type="button">Установить приложение</button>
       <button class="profile-avatar" id="profileButton" aria-label="Профиль" title="Профиль">?</button>
     </div>
   </header>
@@ -33,7 +34,7 @@
     <section class="main-column" id="watch">
       <section class="room-head">
         <div><h1>Смотрим вместе</h1><p class="room-sub"><span class="room-live"><i></i> комната открыта</span><span class="dot-sep">·</span><span id="roomHint">создай комнату и выбери, что смотреть</span></p></div>
-        <div class="room-actions"><button class="button button-quiet" id="newRoom" type="button">＋ Новая комната</button><button class="button button-primary" id="shareRoom" type="button">Пригласить <span>↗</span></button></div>
+        <div class="room-actions"><button class="button button-quiet" id="newRoom" type="button">＋ Новая комната</button><button class="button button-primary" id="shareRoom" type="button" disabled>Пригласить <span>↗</span></button></div>
       </section>
 
       <section class="player-card" aria-label="Совместный видеоплеер">
@@ -64,8 +65,8 @@
       <section class="side-card chat-card" id="roomChat">
         <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><div class="chat-tools"><span class="voice-status" id="voiceStatus">Голос выключен</span><button class="voice-icon-button" id="voiceToggle" type="button" aria-label="Подключить голос" title="Подключить голос">♩</button><button class="voice-icon-button" id="voiceMute" type="button" aria-label="Выключить микрофон" title="Выключить микрофон" disabled>⌁</button><span class="chat-live"><i></i> онлайн</span></div></div>
         <div class="voice-audio-dock" id="voiceAudioDock" aria-label="Голос участников"></div>
-        <div class="chat-messages" id="chatMessages"><div class="chat-welcome">Напиши что-нибудь, чтобы начать общение.</div></div>
-        <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Написать сообщение..." maxlength="240" autocomplete="off" /><button type="submit" aria-label="Отправить">↑</button></form>
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Сообщения комнаты"><div class="chat-welcome">Напиши что-нибудь, чтобы начать общение.</div></div>
+        <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Подключаем чат…" maxlength="240" autocomplete="off" aria-label="Твоё сообщение" disabled /><button type="submit" aria-label="Отправить сообщение" title="Отправить" disabled>↑</button></form>
       </section>
 
       <section class="watch-search" id="watchSearch">
@@ -84,9 +85,9 @@
 
     <aside class="side-column">
       <section class="side-card room-people-card">
-        <div class="card-heading"><div><h2>Участники</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей" type="button">＋</button></div>
+        <div class="card-heading"><div><h2>Участники</h2></div><button class="round-button" id="invitePeople" title="Пригласить друзей" aria-label="Пригласить друзей" type="button" disabled>＋</button></div>
         <div class="people-list" id="peopleList"><div class="person-row"><div class="person-avatar self-avatar">?</div><div class="person-info"><strong>Вы</strong><span>Организатор</span></div><span class="person-presence"></span></div></div>
-        <div class="people-bottom"><span id="peopleCount">1 участник</span><button class="text-action" id="shareRoomSmall" type="button">Пригласить ↗</button></div>
+        <div class="people-bottom"><span id="peopleCount">1 участник</span><button class="text-action" id="shareRoomSmall" type="button" disabled>Пригласить ↗</button></div>
       </section>
 
       <section class="side-card friends-card" id="friends">
@@ -120,9 +121,9 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><h2 id="friendModalTitle">Найти друзей</h2><p class="modal-sub">Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Например, Алексей" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
+  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide" tabindex="-1"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><h2 id="friendModalTitle">Найти друзей</h2><p class="modal-sub">Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Например, Алексей" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
 
-  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="modal-card"><button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button><h2 id="profileModalTitle">Твой профиль</h2><div class="avatar-upload-row"><img id="avatarPreview" src="icon.svg" alt="Фото профиля" /><div><label class="button button-soft upload-label" for="avatarInput">Изменить фото</label><input id="avatarInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" /><small>JPG, PNG или WebP · до 10 МБ</small></div></div><form id="profileForm" class="modal-form"><label for="profileDisplayName">Как тебя называть?</label><input id="profileDisplayName" type="text" minlength="2" maxlength="24" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form><button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button></div></div>
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="modal-card" tabindex="-1"><button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button><h2 id="profileModalTitle">Твой профиль</h2><div class="avatar-upload-row"><img id="avatarPreview" src="icon.svg" alt="Фото профиля" /><div><label class="button button-soft upload-label" for="avatarInput">Изменить фото</label><input id="avatarInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" /><small>JPG, PNG или WebP · до 10 МБ · квадратная обрезка</small></div></div><form id="profileForm" class="modal-form"><label for="profileDisplayName">Как тебя называть?</label><input id="profileDisplayName" type="text" minlength="2" maxlength="24" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form><button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button></div></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>

@@ -15,6 +15,7 @@
   let authMode = 'signin';
   let currentRoom = null;
   let inviteToken = null;
+  let roomReady = false;
   let roomChannel = null;
   let onlineChannel = null;
   let friends = [];
@@ -39,12 +40,25 @@
   let autoplayTimer = null;
   let toastTimer = null;
   let bootstrapping = false;
+  let creatingRoom = false;
+  let activeSearchRequest = 0;
+  let friendSearchRequest = 0;
+  let playerGeneration = 0;
+  let installPrompt = null;
+  let googleSignInMarkup = '';
+  let modalReturnFocus = null;
   let voiceEnabled = false;
   let voiceMuted = false;
   let localAudioStream = null;
   const voicePeers = new Map();
   const pendingVoiceCandidates = new Map();
   const presenceSessionId = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    $('#installApp')?.classList.remove('hidden');
+  });
 
   const initials = (name) => (String(name || '?').trim().replace(/^@/, '').slice(0, 1) || '?').toLocaleUpperCase('ru-RU');
   function setAvatar(node, url, name) {
@@ -85,6 +99,7 @@
   }
 
   function initializeAuthUI() {
+    googleSignInMarkup = $('#googleSignIn')?.innerHTML || '';
     const supabaseKey = config.SUPABASE_PUBLISHABLE_KEY || config.SUPABASE_ANON_KEY;
     const configured = Boolean(config.SUPABASE_URL && supabaseKey && window.supabase?.createClient);
     if (!configured) {
@@ -145,7 +160,7 @@
     } catch (error) {
       setAuthStatus(`Не удалось начать вход через Google: ${error.message}`, true);
       button.disabled = false;
-      button.innerHTML = '<span class="google-g">G</span> Продолжить с Google';
+      button.innerHTML = googleSignInMarkup || 'Продолжить с Google';
     }
   }
 
@@ -310,11 +325,13 @@
 
   function resetRoomState() {
     stopVoiceLocally();
-    currentRoom = null; inviteToken = null; roomOwnerId = null; currentVideo = null; pendingRemotePlayback = null;
+    playerGeneration += 1;
+    currentRoom = null; inviteToken = null; roomReady = false; roomOwnerId = null; currentVideo = null; pendingRemotePlayback = null;
     clearTimeout(autoplayTimer);
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
     if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
-    rutubeReady = false; rutubePlaying = false; rutubeMuted = false;
+    rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
+    lastRutubePosition = 0; lastRutubeSyncAt = 0;
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerError').classList.add('hidden');
     $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = 'Пока комната пустая'; $('#videoCover').textContent = 'S';
@@ -322,6 +339,8 @@
     $('#chatMessages').replaceChildren();
     const welcome = document.createElement('div'); welcome.className = 'chat-welcome'; welcome.textContent = 'Напиши что-нибудь, чтобы начать общение.'; $('#chatMessages').append(welcome);
     const url = new URL(location.href); url.searchParams.delete('room'); url.searchParams.delete('invite'); history.replaceState({}, '', url);
+    $('#roomHint').textContent = 'создай комнату и выбери, что смотреть';
+    updateRoomActions();
   }
 
   async function saveProfile(event) {
@@ -336,7 +355,7 @@
     if (error) return showToast(error.message);
     profile = data;
     updateProfileUI();
-    $('#profileModal').classList.add('hidden');
+    closeModal('profileModal');
     if (roomChannel) await roomChannel.track(presencePayload());
     if (onlineChannel) await onlineChannel.track(presencePayload());
     renderMembers();
@@ -350,11 +369,28 @@
     history.replaceState({}, '', url);
   }
 
+  function updateRoomActions() {
+    const ready = Boolean(currentRoom && inviteToken && roomReady);
+    ['#inviteTop', '#shareRoom', '#shareRoomSmall', '#invitePeople'].forEach((selector) => {
+      const button = $(selector);
+      if (button) button.disabled = !ready;
+    });
+    const chatInput = $('#chatInput');
+    const chatSend = $('#chatForm button[type="submit"]');
+    if (chatInput) {
+      chatInput.disabled = !ready;
+      chatInput.placeholder = ready ? 'Написать сообщение…' : 'Подключаем чат…';
+    }
+    if (chatSend) chatSend.disabled = !ready;
+  }
+
   async function tryJoinRoom(roomId, token) {
     const { error } = await supabase.rpc('join_sync_room', { p_room_id: roomId, p_invite_token: token });
     if (error) return false;
     currentRoom = roomId; inviteToken = token;
     setRoomUrl(roomId, token);
+    updateRoomActions();
+    $('#roomHint').textContent = 'пригласи друзей по ссылке и выбери видео';
     $('#syncLabel').textContent = 'Вы в комнате';
     await connectRoom();
     return true;
@@ -381,11 +417,13 @@
   }
 
   function clearActiveVideo() {
+    playerGeneration += 1;
     currentVideo = null; pendingRemotePlayback = null; playbackStarted = false;
     clearTimeout(autoplayTimer);
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
     if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
     rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
+    lastRutubePosition = 0; lastRutubeSyncAt = 0;
     if (playerUiTimer) clearInterval(playerUiTimer); playerUiTimer = null;
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerControls').classList.add('hidden');
@@ -395,23 +433,34 @@
   }
 
   async function createRoom(showMessage = true) {
-    const { data, error } = await supabase.rpc('create_sync_room');
-    if (error) {
-      showToast(`Не удалось создать комнату: ${error.message}`);
-      return;
+    if (!supabase || creatingRoom) return;
+    creatingRoom = true;
+    const button = $('#newRoom');
+    const previousLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Создаём…';
+    try {
+      const { data, error } = await supabase.rpc('create_sync_room');
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row?.room_id || !row?.invite_token) throw new Error('Supabase не вернул ссылку комнаты');
+      clearActiveVideo();
+      currentRoom = row.room_id;
+      inviteToken = row.invite_token;
+      setRoomUrl(currentRoom, inviteToken);
+      updateRoomActions();
+      $('#roomHint').textContent = 'пригласи друзей по ссылке и выбери видео';
+      $('#syncLabel').textContent = 'Новая комната';
+      await connectRoom();
+      if (showMessage) showToast('Новая комната создана');
+    } catch (error) {
+      showToast(`Не удалось создать комнату: ${error?.message || 'ошибка соединения'}`);
+    } finally {
+      creatingRoom = false;
+      button.disabled = false;
+      button.textContent = previousLabel;
+      updateRoomActions();
     }
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row?.room_id || !row?.invite_token) {
-      showToast('Supabase не вернул ссылку комнаты');
-      return;
-    }
-    clearActiveVideo();
-    currentRoom = row.room_id;
-    inviteToken = row.invite_token;
-    setRoomUrl(currentRoom, inviteToken);
-    $('#syncLabel').textContent = 'Новая комната';
-    await connectRoom();
-    if (showMessage) showToast('Новая комната создана');
   }
 
   function roomUrl() {
@@ -425,6 +474,8 @@
 
   async function connectRoom() {
     if (!currentRoom) return;
+    roomReady = false;
+    updateRoomActions();
     if (roomChannel) {
       if (voiceEnabled) {
         for (const sessionId of [...voicePeers.keys()]) await sendVoiceSignal(sessionId, { type: 'leave' });
@@ -465,15 +516,21 @@
     roomOwnerId = roomInfo?.owner_id || null;
     if (syncTimer) clearInterval(syncTimer);
     syncTimer = setInterval(broadcastRoomHeartbeat, 7000);
-    roomChannel.subscribe(async (status) => {
+    const subscribedChannel = roomChannel;
+    subscribedChannel.subscribe(async (status) => {
+      if (subscribedChannel !== roomChannel) return;
       if (status === 'SUBSCRIBED') {
-        await roomChannel.track(presencePayload());
+        roomReady = true;
+        updateRoomActions();
+        await subscribedChannel.track(presencePayload());
         renderMembers();
         $('#syncLabel').textContent = 'Комната синхронизирована';
         syncVoicePeers();
         // Ask active participants for the live selection. Old saved test videos are never auto-restored.
-        await roomChannel.send({ type: 'broadcast', event: 'request-current-video', payload: { user_id: authUser.id } });
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        await subscribedChannel.send({ type: 'broadcast', event: 'request-current-video', payload: { user_id: authUser.id } });
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        roomReady = false;
+        updateRoomActions();
         $('#syncLabel').textContent = 'Нет соединения';
       }
     });
@@ -592,6 +649,7 @@
 
   async function searchUsers(event) {
     event.preventDefault();
+    const requestId = ++friendSearchRequest;
     const query = $('#friendName').value.trim().replace(/[,%_]/g, ' ').replace(/\s+/g, ' ');
     const box = $('#friendSearchResults'); box.replaceChildren();
     if (query.length < 2) {
@@ -605,6 +663,7 @@
       .ilike('display_name', `%${query}%`)
       .neq('id', authUser.id)
       .limit(12);
+    if (requestId !== friendSearchRequest || !box.isConnected) return;
     box.replaceChildren();
     if (error) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = `Не удалось найти людей: ${error.message}`; box.append(msg); return; }
     if (!data?.length) { const msg = document.createElement('div'); msg.className = 'modal-empty'; msg.textContent = 'Пока никого не нашли. Попробуй другое написание.'; box.append(msg); return; }
@@ -859,18 +918,43 @@
     const box = $('#chatMessages');
     while (box.children.length > 200) box.firstElementChild.remove();
     box.scrollTop = box.scrollHeight;
+    return wrap;
   }
 
   async function sendChatMessage(message) {
+    if (!roomChannel || !authUser) {
+      showToast('Нет соединения с комнатой. Сообщение не отправлено.');
+      return false;
+    }
     const createdAt = Date.now();
-    addChatMessage(displayName(), message, true, profile?.avatar_url, createdAt);
-    if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'chat', payload: { user_id: authUser.id, name: displayName(), avatar_url: profile?.avatar_url || null, message, created_at: createdAt } });
+    const node = addChatMessage(displayName(), message, true, profile?.avatar_url, createdAt);
+    try {
+      const status = await roomChannel.send({
+        type: 'broadcast',
+        event: 'chat',
+        payload: { user_id: authUser.id, name: displayName(), avatar_url: profile?.avatar_url || null, message, created_at: createdAt }
+      });
+      if (status && status !== 'ok') throw new Error(status);
+      return true;
+    } catch (error) {
+      node?.remove();
+      if (!$('#chatMessages').children.length) {
+        const welcome = document.createElement('div');
+        welcome.className = 'chat-welcome';
+        welcome.textContent = 'Сообщение не отправлено. Проверь подключение и попробуй ещё раз.';
+        $('#chatMessages').append(welcome);
+      }
+      showToast('Сообщение не отправлено. Проверь соединение.');
+      console.warn('SYNC chat send failed:', error);
+      return false;
+    }
   }
 
   async function searchVideos(query) {
     const cleaned = String(query || '').trim();
     if (!cleaned) { showToast('Напиши название фильма или видео'); $('#providerSearchInput').focus(); return; }
     if (!currentRoom || !roomChannel) return showToast('Сначала создай комнату');
+    const requestId = ++activeSearchRequest;
     const submit = $('#providerSearchButton');
     submit.disabled = true; submit.textContent = 'Ищем…';
     renderSearchNotice(`Ищем «${cleaned}» в YouTube и RUTUBE…`);
@@ -882,14 +966,20 @@
         try { const body = await error.context?.clone?.().json?.(); serverMessage = body?.error || body?.message || ''; } catch {}
         throw new Error(serverMessage || error.message || 'Функция поиска не отвечает');
       }
+      if (requestId !== activeSearchRequest) return;
       if (data?.error) throw new Error(data.error);
-      renderVideoCards(Array.isArray(data?.results) ? data.results : []);
+      const results = Array.isArray(data?.results) ? data.results : [];
+      renderVideoCards(results);
+      $('#providerMessage').textContent = results.length
+        ? `Нашли ${results.length} ${results.length === 1 ? 'вариант' : results.length < 5 ? 'варианта' : 'вариантов'}. Выбери видео — оно откроется у всех участников комнаты.`
+        : 'По этому запросу пока нет результатов. Попробуй короче или используй другое написание.';
       if (data?.warnings?.length) {
         const warning = document.createElement('div'); warning.className = 'search-warning';
         warning.textContent = `Часть источников недоступна: ${data.warnings.join('; ')}`;
         $('#searchResults').prepend(warning);
       }
     } catch (error) {
+      if (requestId !== activeSearchRequest) return;
       const text = String(error?.message || error);
       if (/404|not found|function not found|non-2xx|functionsfetcherror|failed to send a request/i.test(text)) {
         renderSearchNotice('Нужно обновить функцию sync-search в Supabase из папки supabase/functions/sync-search.');
@@ -897,7 +987,10 @@
         renderSearchNotice('Ключ YouTube API не настроен. RUTUBE также будет проверен после обновления серверной функции.');
       } else renderSearchNotice(`Не получилось выполнить поиск: ${text}`);
     } finally {
-      submit.disabled = false; submit.textContent = 'Найти';
+      if (requestId === activeSearchRequest) {
+        submit.disabled = false;
+        submit.textContent = 'Найти';
+      }
     }
   }
 
@@ -942,7 +1035,10 @@
       window.onYouTubeIframeAPIReady = () => { try { prior?.(); } catch {} resolve(); };
       const script = document.createElement('script');
       script.src = 'https://www.youtube.com/iframe_api'; script.async = true;
-      script.onerror = () => reject(new Error('Не удалось загрузить YouTube Player API'));
+      script.onerror = () => {
+        youtubeApiPromise = null;
+        reject(new Error('Не удалось загрузить YouTube Player API'));
+      };
       document.head.append(script);
     });
     return youtubeApiPromise;
@@ -962,9 +1058,13 @@
 
   async function playYoutube(videoId, title, channelTitle, broadcast = true, initial = {}) {
     if (!/^[\w-]{6,}$/.test(videoId || '')) return showToast('Не удалось открыть это видео');
+    clearTimeout(autoplayTimer);
+    pendingRemotePlayback = null;
+    const generation = ++playerGeneration;
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
     if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
-    rutubeReady = false;
+    rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
+    lastRutubePosition = 0; lastRutubeSyncAt = 0;
     $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerControls').classList.remove('hidden'); startPlayerUiTimer();
     const wrap = $('#embedWrap'); wrap.classList.remove('hidden'); wrap.replaceChildren();
     const target = document.createElement('div'); target.id = 'ytPlayer'; wrap.append(target);
@@ -974,17 +1074,20 @@
     if (broadcast) await announceVideo('youtube', videoId, title, channelTitle);
     try {
       await loadYoutubeApi();
+      if (generation !== playerGeneration || currentVideo?.provider !== 'youtube' || currentVideo?.videoId !== videoId) return;
       youtubePlayer = new window.YT.Player('ytPlayer', {
         host: 'https://www.youtube-nocookie.com',
         videoId,
         playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, modestbranding: 1, origin: location.origin },
         events: {
           onReady: (event) => {
+            if (generation !== playerGeneration) { try { event.target.destroy(); } catch {} return; }
             if (Number(initial.time) > 0) event.target.seekTo(Number(initial.time), true);
             if (initial.state !== 'paused') { event.target.playVideo(); armAutoplayWatchdog(); }
             $('#syncLabel').textContent = 'YouTube подключён';
           },
           onStateChange: (event) => {
+            if (generation !== playerGeneration) return;
             if (event.data === window.YT.PlayerState.PLAYING) markPlaybackStarted();
             updatePlayerControls();
             if (Date.now() < suppressPlaybackBroadcastUntil) return;
@@ -992,20 +1095,27 @@
             const mapped = state === window.YT.PlayerState.PLAYING ? 'playing' : state === window.YT.PlayerState.PAUSED ? 'paused' : state === window.YT.PlayerState.ENDED ? 'ended' : null;
             if (mapped) broadcastPlayback('youtube', mapped, event.target.getCurrentTime?.() || 0);
           },
-          onAutoplayBlocked: () => $('#playerGesture').classList.remove('hidden'),
-          onError: (event) => { $('#syncLabel').textContent = 'Видео недоступно'; showToast(`YouTube: ошибка плеера ${event.data}`); }
+          onAutoplayBlocked: () => { if (generation === playerGeneration) $('#playerGesture').classList.remove('hidden'); },
+          onError: (event) => { if (generation !== playerGeneration) return; $('#syncLabel').textContent = 'Видео недоступно'; showToast(`YouTube: ошибка плеера ${event.data}`); }
         }
       });
-    } catch (error) { $('#playerError').textContent = error.message; $('#playerError').classList.remove('hidden'); }
-    $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (error) {
+      if (generation !== playerGeneration) return;
+      $('#playerError').textContent = error.message;
+      $('#playerError').classList.remove('hidden');
+    }
+    if (generation === playerGeneration) $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   async function playRutube(videoId, title, channelTitle, broadcast = true, initial = {}) {
     if (!/^[A-Za-z0-9_-]{8,}$/.test(videoId || '')) return showToast('Не удалось распознать видео RUTUBE');
+    clearTimeout(autoplayTimer);
+    const generation = ++playerGeneration;
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
     if (rutubeFrame) rutubeFrame.remove();
     rutubeReady = false;
     $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerControls').classList.remove('hidden'); startPlayerUiTimer(); rutubeDuration = 0; rutubePlaying = false; rutubeMuted = false;
+    lastRutubePosition = 0; lastRutubeSyncAt = 0;
     const wrap = $('#embedWrap'); wrap.classList.remove('hidden'); wrap.replaceChildren();
     const frame = document.createElement('iframe'); frame.id = 'rutubePlayer'; frame.title = title; frame.allow = 'autoplay; clipboard-write; fullscreen; picture-in-picture'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
     frame.src = `https://rutube.ru/play/embed/${encodeURIComponent(videoId)}?skinColor=c8b99d&getPlayOptions=title,thumbnail_url&autostartmute=true`;
@@ -1015,7 +1125,7 @@
     $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · RUTUBE`; $('#videoCover').textContent = 'R'; $('#syncLabel').textContent = 'Подключаем RUTUBE…';
     pendingRemotePlayback = initial;
     if (broadcast) await announceVideo('rutube', videoId, title, channelTitle);
-    $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (generation === playerGeneration) $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function sendRutubeCommand(type, data = {}) {
@@ -1168,27 +1278,67 @@
     else if (currentVideo?.provider === 'rutube') { sendRutubeCommand('player:unMute'); sendRutubeCommand('player:play'); }
   }
 
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    field.style.pointerEvents = 'none';
+    document.body.append(field);
+    field.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); }
+    finally { field.remove(); }
+    if (!copied) throw new Error('Браузер не разрешил копирование');
+    return true;
+  }
+
   async function shareRoom(friendName = '') {
     if (!currentRoom || !inviteToken) return showToast('Комната ещё создаётся');
     const url = roomUrl();
     try {
-      if (navigator.share) await navigator.share({ title: 'Моя комната SYNC', text: friendName ? `Присоединяйся к просмотру, ${friendName}!` : 'Заходи смотреть вместе!', url });
-      else { await navigator.clipboard.writeText(url); showToast(friendName ? `Ссылка для ${friendName} скопирована` : 'Ссылка на комнату скопирована'); }
+      if (navigator.share) {
+        await navigator.share({ title: 'Моя комната SYNC', text: friendName ? `Присоединяйся к просмотру, ${friendName}!` : 'Заходи смотреть вместе!', url });
+      } else {
+        await copyText(url);
+        showToast(friendName ? `Ссылка для ${friendName} скопирована` : 'Ссылка на комнату скопирована');
+      }
     } catch (error) {
-      if (error?.name !== 'AbortError') {
-        try { await navigator.clipboard.writeText(url); showToast('Ссылка на комнату скопирована'); }
-        catch { showToast(url); }
+      if (error?.name === 'AbortError') return;
+      try {
+        await copyText(url);
+        showToast('Ссылка на комнату скопирована');
+      } catch {
+        showToast(`Скопируй ссылку: ${url}`);
       }
     }
   }
 
   function openModal(id) {
-    $(`#${id}`).classList.remove('hidden');
-    if (id === 'friendModal') { $('#friendName').focus(); loadIncomingRequests(); }
+    const modal = $(`#${id}`);
+    if (!modal) return;
+    modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    const firstField = modal.querySelector('input:not([type="file"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')
+      || modal.querySelector('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+    (firstField || modal.querySelector('.modal-card'))?.focus({ preventScroll: true });
+    if (id === 'friendModal') loadIncomingRequests();
   }
+
   function closeModal(id) {
-    $(`#${id}`).classList.add('hidden');
+    const modal = $(`#${id}`);
+    if (!modal) return;
+    modal.classList.add('hidden');
     if (id === 'friendModal') $$('.nav-link').forEach((item) => item.classList.toggle('active', item.getAttribute('href') === '#watch'));
+    if (!$('.modal-backdrop:not(.hidden)')) document.body.classList.remove('modal-open');
+    if (modalReturnFocus?.isConnected) modalReturnFocus.focus({ preventScroll: true });
+    modalReturnFocus = null;
   }
 
   function bindEvents() {
@@ -1225,22 +1375,91 @@
     $('#friendsNav').addEventListener('click', () => { $$('.nav-link').forEach((item) => item.classList.toggle('active', item.id === 'friendsNav')); openModal('friendModal'); });
     document.querySelector('.nav-link[href="#watch"]')?.addEventListener('click', () => $$('.nav-link').forEach((item) => item.classList.toggle('active', item.getAttribute('href') === '#watch')));
     $('#friendSearchForm').addEventListener('submit', searchUsers);
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') $$('.modal-backdrop:not(.hidden)').forEach((modal) => closeModal(modal.id)); });
+    document.addEventListener('keydown', (event) => {
+      const activeModal = $('.modal-backdrop:not(.hidden)');
+      if (!activeModal) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeModal(activeModal.id);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = [...activeModal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="file"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+        .filter((element) => element.getClientRects().length > 0 && !element.classList.contains('visually-hidden'));
+      if (!focusable.length) {
+        event.preventDefault();
+        activeModal.querySelector('.modal-card')?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !activeModal.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !activeModal.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    });
     $$('[data-close]').forEach((button) => button.addEventListener('click', () => closeModal(button.dataset.close)));
     $$('.modal-backdrop').forEach((backdrop) => backdrop.addEventListener('click', (event) => { if (event.target === backdrop) closeModal(backdrop.id); }));
     $('#chatForm').addEventListener('submit', async (event) => {
-      event.preventDefault(); const message = $('#chatInput').value.trim(); if (!message) return;
-      $('#chatInput').value = ''; await sendChatMessage(message);
+      event.preventDefault();
+      const input = $('#chatInput');
+      const message = input.value.trim();
+      if (!message) return;
+      const sent = await sendChatMessage(message);
+      if (sent) input.value = '';
     });
     $('#fullscreenButton').addEventListener('click', () => {
       const target = $('#playerStage');
       if (document.fullscreenElement) document.exitFullscreen?.();
-      else target.requestFullscreen?.().catch(() => showToast('Полный экран недоступен'));
+      else if (target.requestFullscreen) target.requestFullscreen().catch(() => showToast('Полный экран недоступен'));
+      else showToast('Полный экран недоступен в этом браузере');
     });
+    $('#installApp')?.addEventListener('click', installApplication);
+    window.addEventListener('appinstalled', () => {
+      installPrompt = null;
+      $('#installApp')?.classList.add('hidden');
+      showToast('SYNC установлен на устройство');
+    });
+  }
+
+  async function installApplication() {
+    if (!installPrompt) return;
+    const promptEvent = installPrompt;
+    installPrompt = null;
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice?.outcome === 'accepted') showToast('Установка SYNC началась');
+    } catch (error) {
+      console.warn('SYNC install prompt failed:', error);
+      showToast('Не удалось открыть установку приложения');
+    } finally {
+      $('#installApp')?.classList.add('hidden');
+    }
+  }
+
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator) || !['https:', 'http:'].includes(location.protocol)) return;
+    try {
+      const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            showToast('SYNC обновлён. Перезагрузи страницу, чтобы применить изменения.');
+          }
+        });
+      });
+    } catch (error) {
+      console.warn('SYNC service worker registration failed:', error);
+    }
   }
 
   async function start() {
     bindEvents();
+    void registerServiceWorker();
     if (!initializeAuthUI()) return;
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) setAuthStatus(error.message, true);
