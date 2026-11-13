@@ -44,6 +44,7 @@
   let activeSearchRequest = 0;
   let friendSearchRequest = 0;
   let playerGeneration = 0;
+  let playerSeekPreview = null;
   let installPrompt = null;
   let googleSignInMarkup = '';
   let modalReturnFocus = null;
@@ -334,7 +335,7 @@
     lastRutubePosition = 0; lastRutubeSyncAt = 0;
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerError').classList.add('hidden');
-    $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = 'Пока комната пустая'; $('#videoCover').textContent = 'S';
+    $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = ''; $('#videoCover').textContent = 'S';
     $('#playerControls').classList.add('hidden'); if (playerUiTimer) clearInterval(playerUiTimer); playerUiTimer = null; rutubeDuration = 0;
     $('#chatMessages').replaceChildren();
     const welcome = document.createElement('div'); welcome.className = 'chat-welcome'; welcome.textContent = 'Напиши что-нибудь, чтобы начать общение.'; $('#chatMessages').append(welcome);
@@ -428,7 +429,7 @@
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerControls').classList.add('hidden');
     $('#playerGesture').classList.add('hidden'); $('#playerError').classList.add('hidden');
-    $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = 'Пока комната пустая'; $('#videoCover').textContent = 'S';
+    $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = ''; $('#videoCover').textContent = 'S';
     $('#searchResults').replaceChildren();
   }
 
@@ -726,19 +727,20 @@
   }
 
   function updateVoiceUI(statusText) {
-    const toggle = $('#voiceToggle'); const mute = $('#voiceMute');
-    if (!toggle || !mute) return;
-    toggle.classList.toggle('is-active', voiceEnabled);
-    toggle.title = voiceEnabled ? 'Отключиться от голосового чата' : 'Подключиться к голосовому чату';
+    const toggle = $('#voiceToggle');
+    const leave = $('#voiceLeave');
+    if (!toggle) return;
+    toggle.classList.toggle('is-active', voiceEnabled && !voiceMuted);
+    toggle.classList.toggle('is-muted', voiceEnabled && voiceMuted);
+    toggle.title = !voiceEnabled ? 'Подключить голосовой чат' : voiceMuted ? 'Включить микрофон' : 'Выключить микрофон';
     toggle.setAttribute('aria-label', toggle.title);
-    toggle.setAttribute('aria-pressed', String(voiceEnabled));
-    mute.disabled = !voiceEnabled;
-    mute.classList.toggle('is-muted', voiceMuted);
-    mute.title = voiceMuted ? 'Включить микрофон' : 'Выключить микрофон';
-    mute.setAttribute('aria-label', mute.title);
-    mute.setAttribute('aria-pressed', String(voiceMuted));
-    $('#voiceStatus').textContent = statusText || (voiceEnabled ? `На связи · ${voicePeers.size + 1}` : 'Голос выключен');
-    $('#voiceStatus').classList.toggle('is-active', voiceEnabled);
+    toggle.setAttribute('aria-pressed', String(voiceEnabled && !voiceMuted));
+    leave?.classList.toggle('hidden', !voiceEnabled);
+    const status = $('#voiceStatus');
+    if (status) {
+      status.textContent = statusText || (voiceEnabled ? `На связи · ${voicePeers.size + 1}` : 'Голос выключен');
+      status.classList.toggle('is-active', voiceEnabled);
+    }
   }
 
   function closeVoicePeer(sessionId) {
@@ -1067,6 +1069,7 @@
     clearTimeout(autoplayTimer);
     pendingRemotePlayback = null;
     const generation = ++playerGeneration;
+    playerSeekPreview = null;
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
     if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
     rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
@@ -1076,7 +1079,7 @@
     const target = document.createElement('div'); target.id = 'ytPlayer'; wrap.append(target);
     currentVideo = { provider: 'youtube', videoId, title, channelTitle };
     playbackStarted = false;
-    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · YouTube`; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем YouTube…';
+    $('#videoTitle').textContent = title; $('#videoSource').textContent = channelTitle || ''; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем YouTube…';
     if (broadcast) await announceVideo('youtube', videoId, title, channelTitle);
     try {
       await loadYoutubeApi();
@@ -1117,6 +1120,7 @@
     if (!/^[A-Za-z0-9_-]{8,}$/.test(videoId || '')) return showToast('Не удалось распознать видео RUTUBE');
     clearTimeout(autoplayTimer);
     const generation = ++playerGeneration;
+    playerSeekPreview = null;
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
     if (rutubeFrame) rutubeFrame.remove();
     rutubeReady = false;
@@ -1128,7 +1132,7 @@
     wrap.append(frame); rutubeFrame = frame;
     currentVideo = { provider: 'rutube', videoId, title, channelTitle };
     playbackStarted = false;
-    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · источник: RUTUBE`; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем плеер…';
+    $('#videoTitle').textContent = title; $('#videoSource').textContent = channelTitle || ''; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем плеер…';
     pendingRemotePlayback = initial;
     if (broadcast) await announceVideo('rutube', videoId, title, channelTitle);
     if (generation === playerGeneration) $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1209,13 +1213,22 @@
     }
     if (currentVideo.provider === 'rutube') { playing = rutubePlaying; muted = rutubeMuted; }
     const seek = $('#playerSeek');
+    const hasPreview = playerSeekPreview !== null && Number.isFinite(playerSeekPreview);
+    const progress = hasPreview ? playerSeekPreview : (duration ? Math.min(1, current / duration) : 0);
     seek.disabled = !duration;
-    if (!seek.matches(':active')) seek.value = duration ? String(Math.round(Math.min(1, current / duration) * 1000)) : '0';
-    $('#playerTime').textContent = `${formatPlayerTime(current)} / ${duration ? formatPlayerTime(duration) : '—:—'}`;
-    $('#playerPlayPause').textContent = playing ? 'Ⅱ' : '▶';
-    $('#playerPlayPause').title = playing ? 'Пауза' : 'Продолжить';
-    $('#playerMute').textContent = muted ? 'Без звука' : 'Звук';
-    $('#playerMute').title = muted ? 'Включить звук' : 'Выключить звук';
+    if (!hasPreview && !seek.matches(':active')) seek.value = duration ? String(Math.round(progress * 1000)) : '0';
+    seek.style.setProperty('--seek-progress', `${progress * 100}%`);
+    const displayTime = hasPreview && duration ? duration * playerSeekPreview : current;
+    $('#playerCurrentTime').textContent = formatPlayerTime(displayTime);
+    $('#playerDurationTime').textContent = duration ? formatPlayerTime(duration) : '—:—';
+    const playButton = $('#playerPlayPause');
+    playButton.classList.toggle('is-playing', playing);
+    playButton.setAttribute('aria-label', playing ? 'Пауза' : 'Продолжить');
+    playButton.title = playing ? 'Пауза' : 'Продолжить';
+    const muteButton = $('#playerMute');
+    muteButton.classList.toggle('is-muted', muted);
+    muteButton.setAttribute('aria-label', muted ? 'Включить звук' : 'Выключить звук');
+    muteButton.title = muted ? 'Включить звук' : 'Выключить звук';
   }
 
   function togglePlayerPlayback() {
@@ -1372,10 +1385,26 @@
       openModal('videoSearchModal');
     });
     $('#playerPlayPause').addEventListener('click', togglePlayerPlayback);
-    $('#playerSeek').addEventListener('change', (event) => seekPlayer(event.target.value));
+    $('#playerSeek').addEventListener('input', (event) => {
+      playerSeekPreview = Math.max(0, Math.min(1000, Number(event.target.value) || 0)) / 1000;
+      updatePlayerControls();
+    });
+    $('#playerSeek').addEventListener('change', (event) => {
+      seekPlayer(event.target.value);
+      playerSeekPreview = null;
+      updatePlayerControls();
+    });
+    $('#playerSeek').addEventListener('blur', () => {
+      playerSeekPreview = null;
+      updatePlayerControls();
+    });
+    $('#playerSeek').addEventListener('pointercancel', () => {
+      playerSeekPreview = null;
+      updatePlayerControls();
+    });
     $('#playerMute').addEventListener('click', togglePlayerMute);
-    $('#voiceToggle').addEventListener('click', toggleVoice);
-    $('#voiceMute').addEventListener('click', toggleVoiceMute);
+    $('#voiceToggle').addEventListener('click', () => voiceEnabled ? toggleVoiceMute() : toggleVoice());
+    $('#voiceLeave').addEventListener('click', toggleVoice);
     $('#startPlayback').addEventListener('click', enablePlaybackFromGesture);
     window.addEventListener('message', handleRutubeMessage);
     window.addEventListener('pagehide', stopVoiceLocally);

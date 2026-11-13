@@ -53,10 +53,25 @@
           <button class="fullscreen-control" id="fullscreenButton" title="На весь экран" aria-label="На весь экран">⛶</button>
         </div>
         <div class="player-controls hidden" id="playerControls" aria-label="Управление просмотром">
-          <button class="player-control-button" id="playerPlayPause" type="button" aria-label="Пауза" title="Пауза">Ⅱ</button>
-          <input class="player-seek" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция видео" />
-          <span class="player-time" id="playerTime">0:00 / 0:00</span>
-          <button class="player-control-button player-volume" id="playerMute" type="button" aria-label="Выключить звук" title="Выключить звук">Звук</button>
+          <div class="player-timeline">
+            <span class="player-time" id="playerCurrentTime">0:00</span>
+            <div class="player-seek-wrap">
+              <input class="player-seek" id="playerSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция видео" />
+            </div>
+            <span class="player-time" id="playerDurationTime">—:—</span>
+          </div>
+          <div class="player-control-row">
+            <div class="player-control-group">
+              <button class="player-control-button" id="playerPlayPause" type="button" aria-label="Пауза" title="Пауза">
+                <svg class="player-icon player-icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>
+                <svg class="player-icon player-icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+              </button>
+              <button class="player-control-button player-volume" id="playerMute" type="button" aria-label="Выключить звук" title="Выключить звук">
+                <svg class="player-icon player-volume-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4zM17 9a5 5 0 0 1 0 6M19 6a9 9 0 0 1 0 12"/></svg>
+                <svg class="player-icon player-volume-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4zM17 9l5 6M22 9l-5 6"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
         <div class="watch-meta">
           <div class="now-playing"><div class="mini-cover" id="videoCover">S</div><div class="now-copy"><span class="meta-label">Сейчас смотрим</span><strong id="videoTitle">Пока ничего</strong><span id="videoSource">Пока комната пустая</span></div></div>
@@ -65,12 +80,12 @@
       </section>
 
       <section class="side-card chat-card" id="roomChat">
-        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><div class="chat-tools"><span class="voice-status" id="voiceStatus">Голос выключен</span><button class="voice-icon-button voice-connect-button" id="voiceToggle" type="button" aria-label="Подключить голосовой чат" title="Подключить голосовой чат">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
-          </button>
-          <button class="voice-icon-button voice-mute-button" id="voiceMute" type="button" aria-label="Выключить микрофон" title="Выключить микрофон" disabled>
+        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2></div><div class="chat-tools"><span class="voice-status" id="voiceStatus" aria-live="polite">Голос выключен</span><button class="voice-icon-button voice-connect-button" id="voiceToggle" type="button" aria-label="Подключить голосовой чат" title="Подключить голосовой чат">
             <svg class="mic-on-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
             <svg class="mic-off-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6M4 4l16 16"/></svg>
+          </button>
+          <button class="voice-icon-button voice-leave-button hidden" id="voiceLeave" type="button" aria-label="Отключить голосовой чат" title="Отключить голосовой чат">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15.5c4.6-4.1 11.4-4.1 16 0l-2.2 3.1a1.5 1.5 0 0 1-1.8.5l-2.1-1a1.5 1.5 0 0 1-.8-1.1l-.2-1.5a10 10 0 0 0-1.8 0l-.2 1.5a1.5 1.5 0 0 1-.8 1.1l-2.1 1a1.5 1.5 0 0 1-1.8-.5L4 15.5z"/><path d="m5 5 14 14"/></svg>
           </button><span class="chat-live"><i></i> онлайн</span></div></div>
         <div class="voice-audio-dock" id="voiceAudioDock" aria-label="Голос участников"></div>
         <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Сообщения комнаты"><div class="chat-welcome">Напиши что-нибудь, чтобы начать общение.</div></div>
@@ -134,7 +149,7 @@
     </div>
   </div>
 
-  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide" tabindex="-1"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><h2 id="friendModalTitle">Найти друзей</h2><p class="modal-sub">Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Например, Алексей" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
+  <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide" tabindex="-1"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><h2 id="friendModalTitle">Найти друзей</h2><p class="modal-sub">Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Имя пользователя" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
 
   <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="modal-card" tabindex="-1"><button class="modal-close" data-close="profileModal" aria-label="Закрыть">×</button><h2 id="profileModalTitle">Твой профиль</h2><div class="avatar-upload-row"><img id="avatarPreview" src="icon.svg" alt="Фото профиля" /><div><label class="button button-soft upload-label" for="avatarInput">Изменить фото</label><input id="avatarInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" /><small>JPG, PNG или WebP · до 10 МБ · квадратная обрезка</small></div></div><form id="profileForm" class="modal-form"><label for="profileDisplayName">Как тебя называть?</label><input id="profileDisplayName" type="text" minlength="2" maxlength="24" required /><div class="profile-email" id="profileEmail"></div><button class="button button-primary button-full" type="submit">Сохранить</button></form><button class="button button-soft button-full logout-button" id="logoutButton" type="button">Выйти из аккаунта</button></div></div>
 
