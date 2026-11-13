@@ -728,14 +728,15 @@
   function updateVoiceUI(statusText) {
     const toggle = $('#voiceToggle'); const mute = $('#voiceMute');
     if (!toggle || !mute) return;
-    toggle.textContent = voiceEnabled ? '●' : '♩';
     toggle.classList.toggle('is-active', voiceEnabled);
     toggle.title = voiceEnabled ? 'Отключиться от голосового чата' : 'Подключиться к голосовому чату';
     toggle.setAttribute('aria-label', toggle.title);
+    toggle.setAttribute('aria-pressed', String(voiceEnabled));
     mute.disabled = !voiceEnabled;
-    mute.textContent = voiceMuted ? '⌁' : '×';
+    mute.classList.toggle('is-muted', voiceMuted);
     mute.title = voiceMuted ? 'Включить микрофон' : 'Выключить микрофон';
     mute.setAttribute('aria-label', mute.title);
+    mute.setAttribute('aria-pressed', String(voiceMuted));
     $('#voiceStatus').textContent = statusText || (voiceEnabled ? `На связи · ${voicePeers.size + 1}` : 'Голос выключен');
     $('#voiceStatus').classList.toggle('is-active', voiceEnabled);
   }
@@ -953,14 +954,14 @@
   async function searchVideos(query) {
     const cleaned = String(query || '').trim();
     if (!cleaned) { showToast('Напиши название фильма или видео'); $('#providerSearchInput').focus(); return; }
-    if (!currentRoom || !roomChannel) return showToast('Сначала создай комнату');
+    if (!currentRoom || !roomChannel) { $('#providerMessage').textContent = 'Комната ещё подключается. Подожди пару секунд и повтори поиск.'; return; }
     const requestId = ++activeSearchRequest;
     const submit = $('#providerSearchButton');
     submit.disabled = true; submit.textContent = 'Ищем…';
-    renderSearchNotice(`Ищем «${cleaned}» в YouTube и RUTUBE…`);
-    $('#providerMessage').textContent = 'Собираем подходящие результаты из доступных источников.';
+    renderSearchNotice(`Ищем «${cleaned}»…`);
+    $('#providerMessage').textContent = 'Подбираем доступные видео по твоему запросу.';
     try {
-      const { data, error } = await supabase.functions.invoke('sync-search', { body: { provider: 'all', query: cleaned } });
+      const { data, error } = await supabase.functions.invoke('sync-search', { body: { provider: 'rutube', query: cleaned } });
       if (error) {
         let serverMessage = '';
         try { const body = await error.context?.clone?.().json?.(); serverMessage = body?.error || body?.message || ''; } catch {}
@@ -975,7 +976,7 @@
         : 'По этому запросу пока нет результатов. Попробуй короче или используй другое написание.';
       if (data?.warnings?.length) {
         const warning = document.createElement('div'); warning.className = 'search-warning';
-        warning.textContent = `Часть источников недоступна: ${data.warnings.join('; ')}`;
+        warning.textContent = `Поиск временно ограничен: ${data.warnings.join('; ')}`;
         $('#searchResults').prepend(warning);
       }
     } catch (error) {
@@ -983,8 +984,6 @@
       const text = String(error?.message || error);
       if (/404|not found|function not found|non-2xx|functionsfetcherror|failed to send a request/i.test(text)) {
         renderSearchNotice('Нужно обновить функцию sync-search в Supabase из папки supabase/functions/sync-search.');
-      } else if (/YOUTUBE_API_KEY/i.test(text)) {
-        renderSearchNotice('Ключ YouTube API не настроен. RUTUBE также будет проверен после обновления серверной функции.');
       } else renderSearchNotice(`Не получилось выполнить поиск: ${text}`);
     } finally {
       if (requestId === activeSearchRequest) {
@@ -996,19 +995,26 @@
 
   function renderVideoCards(items) {
     const box = $('#searchResults'); box.replaceChildren();
-    if (!items.length) return renderSearchNotice('Ничего подходящего не найдено. Попробуй другое название.');
+    if (!items.length) return renderSearchNotice('По этому запросу ничего не найдено. Попробуй другое название или сократи запрос.');
     items.forEach((item) => {
-      const kind = item.provider === 'rutube' ? 'rutube' : 'youtube';
+      const kind = 'rutube';
       const card = document.createElement('article'); card.className = 'result-card';
-      const thumb = document.createElement('img'); thumb.className = 'result-thumb'; thumb.loading = 'lazy'; thumb.alt = ''; thumb.src = item.thumbnail || '';
+      const thumb = document.createElement('img'); thumb.className = 'result-thumb'; thumb.loading = 'lazy'; thumb.alt = ''; thumb.decoding = 'async';
+      if (item.thumbnail) thumb.src = item.thumbnail;
       thumb.onerror = () => { thumb.classList.add('thumb-unavailable'); thumb.removeAttribute('src'); };
       const copy = document.createElement('div'); copy.className = 'result-copy';
-      const source = document.createElement('span'); source.className = `result-source source-${kind}`; source.textContent = providers[kind].name;
-      const name = document.createElement('strong'); name.textContent = item.title || 'Видео';
-      const author = document.createElement('span'); author.className = 'result-author'; author.textContent = item.author || providers[kind].name;
-      const play = document.createElement('button'); play.className = 'result-play'; play.type = 'button'; play.textContent = 'Смотреть в SYNC';
-      play.addEventListener('click', () => playSelectedVideo(kind, item.id, item.title || 'Видео', item.author || providers[kind].name, true));
-      copy.append(source, name, author, play); card.append(thumb, copy); box.append(card);
+      const name = document.createElement('strong'); name.className = 'result-title'; name.textContent = item.title || 'Видео';
+      const author = document.createElement('span'); author.className = 'result-author'; author.textContent = item.author || 'Автор видео';
+      const play = document.createElement('button'); play.className = 'result-play'; play.type = 'button'; play.textContent = 'Выбрать видео';
+      play.setAttribute('aria-label', `Выбрать видео: ${item.title || 'Видео'}`);
+      play.addEventListener('click', () => {
+        play.disabled = true; play.textContent = 'Открываем…';
+        closeModal('videoSearchModal');
+        playSelectedVideo(kind, item.id, item.title || 'Видео', item.author || 'Автор видео', true)
+          .catch((error) => { console.error('SYNC select video failed:', error); showToast('Не удалось открыть это видео. Выбери другое.'); })
+          .finally(() => { play.disabled = false; play.textContent = 'Выбрать видео'; });
+      });
+      copy.append(name, author, play); card.append(thumb, copy); box.append(card);
     });
   }
 
@@ -1122,7 +1128,7 @@
     wrap.append(frame); rutubeFrame = frame;
     currentVideo = { provider: 'rutube', videoId, title, channelTitle };
     playbackStarted = false;
-    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · RUTUBE`; $('#videoCover').textContent = 'R'; $('#syncLabel').textContent = 'Подключаем RUTUBE…';
+    $('#videoTitle').textContent = title; $('#videoSource').textContent = `${channelTitle} · источник: RUTUBE`; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем плеер…';
     pendingRemotePlayback = initial;
     if (broadcast) await announceVideo('rutube', videoId, title, channelTitle);
     if (generation === playerGeneration) $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1138,8 +1144,12 @@
     let message = event.data;
     if (typeof message === 'string') { try { message = JSON.parse(message); } catch { return; } }
     if (!message || typeof message !== 'object') return;
-    if (message.type === 'player:ready') {
-      rutubeReady = true; $('#syncLabel').textContent = 'RUTUBE подключён';
+    if (message.type === 'player:ready' || message.type === 'player:init') {
+      rutubeReady = true;
+      // RUTUBE supports hiding its standard control bar; SYNC renders its own controls below the video.
+      sendRutubeCommand('player:hideControls');
+      if (message.type === 'player:init') { $('#syncLabel').textContent = 'Плеер готов'; return; }
+      $('#syncLabel').textContent = 'Плеер готов';
       if (pendingRemotePlayback) applyPlaybackState({ ...pendingRemotePlayback, provider: 'rutube', videoId: currentVideo?.videoId });
       if (pendingRemotePlayback?.state !== 'paused') armAutoplayWatchdog();
       pendingRemotePlayback = null;
@@ -1153,7 +1163,7 @@
       const state = message.data?.state;
       if (state === 'playing' || state === 'paused' || state === 'stopped') broadcastPlayback('rutube', state, lastRutubePosition);
     }
-    if (message.type === 'player:duration') rutubeDuration = Number(message.data?.duration) || rutubeDuration;
+    if (message.type === 'player:duration' || message.type === 'player:durationChange') rutubeDuration = Number(message.data?.duration) || rutubeDuration;
     if (message.type === 'player:currentTime') {
       const nextPosition = Number(message.data?.time) || 0;
       const previousPosition = lastRutubePosition;
@@ -1354,9 +1364,12 @@
     $('#logoutButton').addEventListener('click', signOut);
     $('#profileButton').addEventListener('click', () => { updateProfileUI(); openModal('profileModal'); });
     $('#providerSearchForm').addEventListener('submit', (event) => { event.preventDefault(); searchVideos($('#providerSearchInput').value); });
-    $('#findFromPlayer').addEventListener('click', () => {
-      $('#providerSearchInput').focus({ preventScroll: true });
-      $('#watchSearch').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#addVideoButton').addEventListener('click', () => {
+      $('#providerSearchInput').value = '';
+      $('#searchResults').replaceChildren();
+      $('#providerMessage').textContent = currentRoom ? 'Введи название фильма, сериала или видео.' : 'Сначала подключись к комнате, чтобы выбрать видео для общего просмотра.';
+      $('#providerSearchButton').disabled = false;
+      openModal('videoSearchModal');
     });
     $('#playerPlayPause').addEventListener('click', togglePlayerPlayback);
     $('#playerSeek').addEventListener('change', (event) => seekPlayer(event.target.value));

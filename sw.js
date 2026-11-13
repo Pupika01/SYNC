@@ -1,4 +1,4 @@
-const CACHE = 'sync-pwa-v20';
+const CACHE = 'sync-pwa-v21';
 const ASSETS = [
   './',
   './index.html',

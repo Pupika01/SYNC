@@ -40,11 +40,13 @@
       <section class="player-card" aria-label="Совместный видеоплеер">
         <div class="video-stage" id="playerStage">
           <div class="stage-empty" id="stagePlaceholder">
-            <img class="stage-symbol" src="icon.svg" alt="" />
-            <h2>Что будем смотреть?</h2>
-            <p>Найди фильм, сериал или видео — SYNC предложит варианты из доступных источников.</p>
-            <button class="button button-primary" id="findFromPlayer" type="button">Выбрать видео</button>
+            <div class="stage-symbol-wrap"><img class="stage-symbol" src="icon.svg" alt="" /></div>
+            <h2>Комната ждёт своего фильма</h2>
+            <p>Нажми «+» в углу плеера и выбери, что будем смотреть.</p>
           </div>
+          <button class="player-add-button" id="addVideoButton" type="button" aria-label="Добавить видео" title="Выбрать фильм или видео">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
           <div class="embed-wrap hidden" id="embedWrap"></div>
           <div class="player-error hidden" id="playerError"></div>
           <div class="player-gesture hidden" id="playerGesture"><button class="button button-primary" id="startPlayback" type="button">▶ Начать общий просмотр</button><span>Браузер просит подтвердить запуск видео</span></div>
@@ -63,24 +65,19 @@
       </section>
 
       <section class="side-card chat-card" id="roomChat">
-        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><div class="chat-tools"><span class="voice-status" id="voiceStatus">Голос выключен</span><button class="voice-icon-button" id="voiceToggle" type="button" aria-label="Подключить голос" title="Подключить голос">♩</button><button class="voice-icon-button" id="voiceMute" type="button" aria-label="Выключить микрофон" title="Выключить микрофон" disabled>⌁</button><span class="chat-live"><i></i> онлайн</span></div></div>
+        <div class="card-heading chat-heading"><div><h2>Чат комнаты</h2><p class="chat-caption">Общайтесь во время просмотра</p></div><div class="chat-tools"><span class="voice-status" id="voiceStatus">Голос выключен</span><button class="voice-icon-button voice-connect-button" id="voiceToggle" type="button" aria-label="Подключить голосовой чат" title="Подключить голосовой чат">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
+          </button>
+          <button class="voice-icon-button voice-mute-button" id="voiceMute" type="button" aria-label="Выключить микрофон" title="Выключить микрофон" disabled>
+            <svg class="mic-on-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
+            <svg class="mic-off-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6M4 4l16 16"/></svg>
+          </button><span class="chat-live"><i></i> онлайн</span></div></div>
         <div class="voice-audio-dock" id="voiceAudioDock" aria-label="Голос участников"></div>
         <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Сообщения комнаты"><div class="chat-welcome">Напиши что-нибудь, чтобы начать общение.</div></div>
         <form class="chat-form" id="chatForm"><input id="chatInput" type="text" placeholder="Подключаем чат…" maxlength="240" autocomplete="off" aria-label="Твоё сообщение" disabled /><button type="submit" aria-label="Отправить сообщение" title="Отправить" disabled>↑</button></form>
       </section>
 
-      <section class="watch-search" id="watchSearch">
-        <div class="watch-search-heading">
-          <div><span class="workspace-eyebrow">ВЫБОР ПРОСМОТРА</span><h2>Что будем смотреть?</h2><p>Напиши название фильма, сериала или видео. SYNC поищет подходящие варианты и покажет, где их можно открыть.</p></div>
-        </div>
-        <form class="provider-search universal-search" id="providerSearchForm">
-          <span aria-hidden="true">⌕</span>
-          <input id="providerSearchInput" type="search" placeholder="Например, Железный человек" maxlength="100" autocomplete="off" />
-          <button class="button button-primary" id="providerSearchButton" type="submit">Найти</button>
-        </form>
-        <div class="provider-message" id="providerMessage">Сначала создай комнату или открой приглашение. После этого выбери видео — оно появится здесь у всех участников.</div>
-        <div class="search-results" id="searchResults" aria-live="polite"></div>
-      </section>
+
     </section>
 
     <aside class="side-column">
@@ -120,6 +117,22 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal-backdrop hidden" id="videoSearchModal" role="dialog" aria-modal="true" aria-labelledby="videoSearchTitle">
+    <div class="modal-card video-search-modal" tabindex="-1">
+      <button class="modal-close" data-close="videoSearchModal" aria-label="Закрыть поиск">×</button>
+      <span class="workspace-eyebrow">ВЫБОР ПРОСМОТРА</span>
+      <h2 id="videoSearchTitle">Что будем смотреть?</h2>
+      <p class="modal-sub">Найди фильм, сериал или видео — результаты появятся прямо здесь.</p>
+      <form class="provider-search universal-search" id="providerSearchForm" role="search">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m16 16 4.2 4.2"/></svg>
+        <input id="providerSearchInput" type="search" placeholder="Например, Интерстеллар" maxlength="100" autocomplete="off" aria-label="Название фильма или видео" />
+        <button class="button button-primary" id="providerSearchButton" type="submit">Найти</button>
+      </form>
+      <div class="provider-message" id="providerMessage" role="status" aria-live="polite">Введи название фильма, сериала или видео.</div>
+      <div class="search-results" id="searchResults" aria-live="polite"></div>
+    </div>
+  </div>
 
   <div class="modal-backdrop hidden" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"><div class="modal-card modal-wide" tabindex="-1"><button class="modal-close" data-close="friendModal" aria-label="Закрыть">×</button><h2 id="friendModalTitle">Найти друзей</h2><p class="modal-sub">Найди человека по имени и отправь заявку в друзья.</p><form id="friendSearchForm" class="modal-form"><label for="friendName">Имя человека</label><div class="inline-form"><input id="friendName" type="text" placeholder="Например, Алексей" minlength="2" maxlength="24" autocomplete="off" required /><button class="button button-primary" type="submit">Найти</button></div></form><div id="friendSearchResults" class="modal-list"></div><div class="request-divider"><span>Входящие заявки</span></div><div id="incomingRequests" class="modal-list"><div class="modal-empty">Нет новых заявок</div></div></div></div>
 
