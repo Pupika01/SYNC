@@ -6,8 +6,11 @@
   const config = window.SYNC_CONFIG || {};
   const providers = {
     youtube: { name: 'YouTube' },
-    rutube: { name: 'RUTUBE' }
+    vk: { name: 'VK Видео' }
   };
+  // Домен VK Видео: меняется в одном месте, если VK переедет на другой.
+  const VK_HOST = 'https://vk.ru';
+  const VK_VIDEO_ID = /^(-?\d{1,12})_(\d{1,12})(?:_([A-Fa-f0-9]{8,40}))?$/;
 
   let supabase = null;
   let authUser = null;
@@ -24,18 +27,21 @@
   let currentVideo = null;
   let youtubePlayer = null;
   let youtubeApiPromise = null;
-  let rutubeFrame = null;
-  let rutubeReady = false;
-  let rutubePlaying = false;
-  let rutubeMuted = false;
+  let vkApiPromise = null;
+  let vkFrame = null;
+  let vkPlayer = null;
+  let vkReady = false;
+  let vkPlaying = false;
+  let vkMuted = false;
+  let vkAdPlaying = false;
   let pendingRemotePlayback = null;
   let suppressPlaybackBroadcastUntil = 0;
   let roomOwnerId = null;
   let syncTimer = null;
   let playerUiTimer = null;
-  let rutubeDuration = 0;
-  let lastRutubePosition = 0;
-  let lastRutubeSyncAt = 0;
+  let vkDuration = 0;
+  let lastVkPosition = 0;
+  let lastVkSyncAt = 0;
   let playbackStarted = false;
   let autoplayTimer = null;
   let toastTimer = null;
@@ -330,13 +336,11 @@
     currentRoom = null; inviteToken = null; roomReady = false; roomOwnerId = null; currentVideo = null; pendingRemotePlayback = null;
     clearTimeout(autoplayTimer);
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
-    if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
-    rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
-    lastRutubePosition = 0; lastRutubeSyncAt = 0;
+    resetVkPlayer();
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerError').classList.add('hidden');
     $('#videoTitle').textContent = 'Пока ничего'; $('#videoSource').textContent = ''; $('#videoCover').textContent = 'S';
-    $('#playerControls').classList.add('hidden'); if (playerUiTimer) clearInterval(playerUiTimer); playerUiTimer = null; rutubeDuration = 0;
+    $('#playerControls').classList.add('hidden'); if (playerUiTimer) clearInterval(playerUiTimer); playerUiTimer = null;
     $('#chatMessages').replaceChildren();
     const welcome = document.createElement('div'); welcome.className = 'chat-welcome'; welcome.textContent = 'Напиши что-нибудь, чтобы начать общение.'; $('#chatMessages').append(welcome);
     const url = new URL(location.href); url.searchParams.delete('room'); url.searchParams.delete('invite'); history.replaceState({}, '', url);
@@ -422,9 +426,7 @@
     currentVideo = null; pendingRemotePlayback = null; playbackStarted = false;
     clearTimeout(autoplayTimer);
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
-    if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
-    rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
-    lastRutubePosition = 0; lastRutubeSyncAt = 0;
+    resetVkPlayer();
     if (playerUiTimer) clearInterval(playerUiTimer); playerUiTimer = null;
     $('#embedWrap').replaceChildren(); $('#embedWrap').classList.add('hidden');
     $('#stagePlaceholder').classList.remove('hidden'); $('#playerControls').classList.add('hidden');
@@ -501,7 +503,7 @@
         if (payload?.user_id !== authUser.id) addChatMessage(payload?.name || 'Друг', payload?.message || '', false, payload?.avatar_url || '', payload?.created_at || Date.now());
       })
       .on('broadcast', { event: 'video' }, async ({ payload }) => {
-        if (payload?.user_id !== authUser.id && payload?.videoId && ['youtube', 'rutube'].includes(payload.provider)) {
+        if (payload?.user_id !== authUser.id && payload?.videoId && ['youtube', 'vk'].includes(payload.provider)) {
           suppressPlaybackBroadcastUntil = Date.now() + 5000;
           await playSelectedVideo(payload.provider, payload.videoId, payload.title || 'Видео', payload.channelTitle || providers[payload.provider].name, false, { state: 'playing', time: payload.time || 0 });
           showToast('Друг выбрал видео — запускаем вместе');
@@ -955,15 +957,22 @@
 
   async function searchVideos(query) {
     const cleaned = String(query || '').trim();
-    if (!cleaned) { showToast('Напиши название фильма или видео'); $('#providerSearchInput').focus(); return; }
+    if (!cleaned) { showToast('Напиши название фильма или вставь ссылку VK Видео'); $('#providerSearchInput').focus(); return; }
     if (!currentRoom || !roomChannel) { $('#providerMessage').textContent = 'Комната ещё подключается. Подожди пару секунд и повтори поиск.'; return; }
+    const pastedLink = parseVkLink(cleaned);
+    if (pastedLink) {
+      closeModal('videoSearchModal');
+      playSelectedVideo('vk', pastedLink, 'Видео из VK Видео', 'VK Видео', true)
+        .catch((error) => { console.error('SYNC open VK link failed:', error); showToast('Не удалось открыть эту ссылку VK Видео.'); });
+      return;
+    }
     const requestId = ++activeSearchRequest;
     const submit = $('#providerSearchButton');
     submit.disabled = true; submit.textContent = 'Ищем…';
     renderSearchNotice(`Ищем «${cleaned}»…`);
     $('#providerMessage').textContent = 'Подбираем доступные видео по твоему запросу.';
     try {
-      const { data, error } = await supabase.functions.invoke('sync-search', { body: { provider: 'rutube', query: cleaned } });
+      const { data, error } = await supabase.functions.invoke('sync-search', { body: { provider: 'vk', query: cleaned } });
       if (error) {
         let serverMessage = '';
         try { const body = await error.context?.clone?.().json?.(); serverMessage = body?.error || body?.message || ''; } catch {}
@@ -999,7 +1008,7 @@
     const box = $('#searchResults'); box.replaceChildren();
     if (!items.length) return renderSearchNotice('По этому запросу ничего не найдено. Попробуй другое название или сократи запрос.');
     items.forEach((item) => {
-      const kind = 'rutube';
+      const kind = 'vk';
       const card = document.createElement('article'); card.className = 'result-card';
       const thumb = document.createElement('img'); thumb.className = 'result-thumb'; thumb.loading = 'lazy'; thumb.alt = ''; thumb.decoding = 'async';
       if (item.thumbnail) thumb.src = item.thumbnail;
@@ -1054,7 +1063,7 @@
 
   async function playSelectedVideo(kind, videoId, title, channelTitle, broadcast = true, initial = {}) {
     if (kind === 'youtube') return playYoutube(videoId, title, channelTitle, broadcast, initial);
-    if (kind === 'rutube') return playRutube(videoId, title, channelTitle, broadcast, initial);
+    if (kind === 'vk') return playVk(videoId, title, channelTitle, broadcast, initial);
   }
 
   async function announceVideo(kind, videoId, title, channelTitle) {
@@ -1071,9 +1080,7 @@
     const generation = ++playerGeneration;
     playerSeekPreview = null;
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
-    if (rutubeFrame) { rutubeFrame.remove(); rutubeFrame = null; }
-    rutubeReady = false; rutubePlaying = false; rutubeMuted = false; rutubeDuration = 0;
-    lastRutubePosition = 0; lastRutubeSyncAt = 0;
+    resetVkPlayer();
     $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerControls').classList.remove('hidden'); startPlayerUiTimer();
     const wrap = $('#embedWrap'); wrap.classList.remove('hidden'); wrap.replaceChildren();
     const target = document.createElement('div'); target.id = 'ytPlayer'; wrap.append(target);
@@ -1116,70 +1123,159 @@
     if (generation === playerGeneration) $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  async function playRutube(videoId, title, channelTitle, broadcast = true, initial = {}) {
-    if (!/^[A-Za-z0-9_-]{8,}$/.test(videoId || '')) return showToast('Не удалось распознать видео RUTUBE');
+  function resetVkPlayer() {
+    if (vkPlayer) { try { vkPlayer.destroy(); } catch {} vkPlayer = null; }
+    if (vkFrame) { vkFrame.remove(); vkFrame = null; }
+    vkReady = false; vkPlaying = false; vkMuted = false; vkAdPlaying = false; vkDuration = 0;
+    lastVkPosition = 0; lastVkSyncAt = 0;
+  }
+
+  // ID видео VK внутри SYNC: «владелец_видео» или «владелец_видео_hash» (hash нужен для видео по ссылке).
+  function parseVkVideoId(value) {
+    const match = VK_VIDEO_ID.exec(String(value || ''));
+    return match ? { oid: match[1], id: match[2], hash: match[3] || '' } : null;
+  }
+
+  // Принимает ссылки вида vk.com/video-1_2, vkvideo.ru/video-1_2 и код вставки video_ext.php?oid=…&id=….
+  function parseVkLink(text) {
+    const raw = String(text || '').trim();
+    if (!raw || /\s/.test(raw)) return null;
+    let url;
+    try { url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`); } catch { return null; }
+    if (!/^https?:$/.test(url.protocol) || !/(^|\.)(vk\.com|vk\.ru|vkvideo\.ru)$/i.test(url.hostname)) return null;
+    let oid = url.searchParams.get('oid');
+    let id = url.searchParams.get('id');
+    if (!oid || !id) {
+      const found = /video(-?\d+)_(\d+)/i.exec(url.pathname + url.search);
+      if (!found) return null;
+      [, oid, id] = found;
+    }
+    const hash = url.searchParams.get('hash') || '';
+    const videoId = `${oid}_${id}${/^[a-f0-9]{8,40}$/i.test(hash) ? `_${hash}` : ''}`;
+    return parseVkVideoId(videoId) ? videoId : null;
+  }
+
+  function buildVkEmbedUrl(parsed) {
+    const params = new URLSearchParams({ oid: parsed.oid, id: parsed.id, autoplay: '1', js_api: '1' });
+    if (parsed.hash) params.set('hash', parsed.hash);
+    return `${VK_HOST}/video_ext.php?${params}`;
+  }
+
+  function loadVkApi() {
+    if (window.VK?.VideoPlayer) return Promise.resolve();
+    if (vkApiPromise) return vkApiPromise;
+    vkApiPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `${VK_HOST}/js/api/videoplayer.js`; script.async = true;
+      script.onload = () => {
+        if (window.VK?.VideoPlayer) { resolve(); return; }
+        vkApiPromise = null; script.remove();
+        reject(new Error('API плеера VK Видео не запустился'));
+      };
+      script.onerror = () => {
+        vkApiPromise = null; script.remove();
+        reject(new Error('Не удалось загрузить API плеера VK Видео'));
+      };
+      document.head.append(script);
+    });
+    return vkApiPromise;
+  }
+
+  async function playVk(videoId, title, channelTitle, broadcast = true, initial = {}) {
+    const parsed = parseVkVideoId(videoId);
+    if (!parsed) return showToast('Не удалось распознать видео VK Видео');
     clearTimeout(autoplayTimer);
     const generation = ++playerGeneration;
     playerSeekPreview = null;
     if (youtubePlayer?.destroy) { try { youtubePlayer.destroy(); } catch {} youtubePlayer = null; }
-    if (rutubeFrame) rutubeFrame.remove();
-    rutubeReady = false;
-    $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerControls').classList.remove('hidden'); startPlayerUiTimer(); rutubeDuration = 0; rutubePlaying = false; rutubeMuted = false;
-    lastRutubePosition = 0; lastRutubeSyncAt = 0;
+    resetVkPlayer();
+    $('#stagePlaceholder').classList.add('hidden'); $('#playerError').classList.add('hidden'); $('#playerGesture').classList.add('hidden'); $('#playerControls').classList.remove('hidden'); startPlayerUiTimer();
     const wrap = $('#embedWrap'); wrap.classList.remove('hidden'); wrap.replaceChildren();
-    const frame = document.createElement('iframe'); frame.id = 'rutubePlayer'; frame.title = title; frame.allow = 'autoplay; clipboard-write; fullscreen; picture-in-picture'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
-    frame.src = `https://rutube.ru/play/embed/${encodeURIComponent(videoId)}?skinColor=c8b99d&getPlayOptions=title,thumbnail_url&autostartmute=true`;
-    wrap.append(frame); rutubeFrame = frame;
-    currentVideo = { provider: 'rutube', videoId, title, channelTitle };
+    currentVideo = { provider: 'vk', videoId, title, channelTitle };
     playbackStarted = false;
-    $('#videoTitle').textContent = title; $('#videoSource').textContent = channelTitle || ''; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем плеер…';
+    $('#videoTitle').textContent = title; $('#videoSource').textContent = channelTitle || ''; $('#videoCover').textContent = '▶'; $('#syncLabel').textContent = 'Подключаем VK Видео…';
     pendingRemotePlayback = initial;
-    if (broadcast) await announceVideo('rutube', videoId, title, channelTitle);
+    if (broadcast) await announceVideo('vk', videoId, title, channelTitle);
+    try {
+      await loadVkApi();
+      if (generation !== playerGeneration || currentVideo?.provider !== 'vk' || currentVideo?.videoId !== videoId) return;
+      // Сначала создаём iframe, и сразу же подключаем API: событие inited не должно пройти мимо.
+      const frame = document.createElement('iframe');
+      frame.id = 'vkPlayer'; frame.title = title;
+      frame.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.src = buildVkEmbedUrl(parsed);
+      wrap.replaceChildren(frame); vkFrame = frame;
+      vkPlayer = window.VK.VideoPlayer(frame);
+      bindVkPlayer(vkPlayer, generation);
+      setTimeout(() => {
+        if (generation === playerGeneration && !vkReady) $('#syncLabel').textContent = 'VK Видео отвечает долго. Если видео не запускается, отключи блокировщики для этого сайта';
+      }, 10000);
+    } catch (error) {
+      if (generation !== playerGeneration) return;
+      $('#playerError').textContent = error?.message || 'Не удалось открыть VK Видео';
+      $('#playerError').classList.remove('hidden');
+    }
     if (generation === playerGeneration) $('#playerStage').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function sendRutubeCommand(type, data = {}) {
-    if (!rutubeFrame?.contentWindow || !rutubeReady) return;
-    rutubeFrame.contentWindow.postMessage(JSON.stringify({ type, data }), 'https://rutube.ru');
+  function vkCommand(action, ...args) {
+    if (!vkPlayer || !vkReady) return;
+    try { vkPlayer[action](...args); } catch (error) { console.warn('SYNC VK command failed:', action, error); }
   }
 
-  function handleRutubeMessage(event) {
-    if (event.origin !== 'https://rutube.ru' || !rutubeFrame || event.source !== rutubeFrame.contentWindow) return;
-    let message = event.data;
-    if (typeof message === 'string') { try { message = JSON.parse(message); } catch { return; } }
-    if (!message || typeof message !== 'object') return;
-    if (message.type === 'player:ready' || message.type === 'player:init') {
-      rutubeReady = true;
-      // RUTUBE supports hiding its standard control bar; SYNC renders its own controls below the video.
-      sendRutubeCommand('player:hideControls');
-      if (message.type === 'player:init') { $('#syncLabel').textContent = 'Плеер готов'; return; }
-      $('#syncLabel').textContent = 'Плеер готов';
-      if (pendingRemotePlayback) applyPlaybackState({ ...pendingRemotePlayback, provider: 'rutube', videoId: currentVideo?.videoId });
-      if (pendingRemotePlayback?.state !== 'paused') armAutoplayWatchdog();
-      pendingRemotePlayback = null;
-      return;
-    }
-    if (message.type === 'player:changeState') {
-      rutubePlaying = message.data?.state === 'playing';
-      if (message.data?.state === 'playing') markPlaybackStarted();
+  function bindVkPlayer(player, generation) {
+    const on = (event, handler) => player.on(event, (state) => {
+      if (generation !== playerGeneration || vkPlayer !== player) return;
+      handler(state && typeof state === 'object' ? state : {});
+    });
+    const readState = (state) => {
+      const duration = Number(state.duration);
+      if (Number.isFinite(duration) && duration > 0) vkDuration = duration;
+      if (state.muted !== undefined) vkMuted = state.muted === true || state.muted === 'true';
+      const time = Number(state.time);
+      return Number.isFinite(time) ? time : null;
+    };
+    const canBroadcast = () => !vkAdPlaying && Date.now() >= suppressPlaybackBroadcastUntil;
+
+    on('inited', (state) => {
+      vkReady = true; readState(state);
+      $('#syncLabel').textContent = 'VK Видео подключено';
+      const pending = pendingRemotePlayback; pendingRemotePlayback = null;
+      if (pending) applyPlaybackState({ ...pending, provider: 'vk', videoId: currentVideo?.videoId });
+      if (pending?.state !== 'paused') armAutoplayWatchdog();
       updatePlayerControls();
-      if (Date.now() < suppressPlaybackBroadcastUntil) return;
-      const state = message.data?.state;
-      if (state === 'playing' || state === 'paused' || state === 'stopped') broadcastPlayback('rutube', state, lastRutubePosition);
-    }
-    if (message.type === 'player:duration' || message.type === 'player:durationChange') rutubeDuration = Number(message.data?.duration) || rutubeDuration;
-    if (message.type === 'player:currentTime') {
-      const nextPosition = Number(message.data?.time) || 0;
-      const previousPosition = lastRutubePosition;
-      lastRutubePosition = nextPosition;
-      if (previousPosition > 0 && Math.abs(nextPosition - previousPosition) > 3 && Date.now() > suppressPlaybackBroadcastUntil) {
-        broadcastPlayback('rutube', 'seek', nextPosition);
-      }
-      if (Date.now() - lastRutubeSyncAt > 5000 && isSyncLeader()) {
-        lastRutubeSyncAt = Date.now(); broadcastPlayback('rutube', 'sync', lastRutubePosition);
-      }
-    }
-    if (message.type === 'player:error') showToast(`RUTUBE: ${message.data?.text || message.data?.code || 'ошибка плеера'}`);
+    });
+    const onPlay = (state) => {
+      const time = readState(state); if (time !== null) lastVkPosition = time;
+      vkPlaying = true; markPlaybackStarted(); updatePlayerControls();
+      if (canBroadcast()) broadcastPlayback('vk', 'playing', lastVkPosition);
+    };
+    on('started', onPlay);
+    on('resumed', onPlay);
+    on('paused', (state) => {
+      const time = readState(state); if (time !== null) lastVkPosition = time;
+      vkPlaying = false; updatePlayerControls();
+      if (canBroadcast()) broadcastPlayback('vk', 'paused', lastVkPosition);
+    });
+    on('ended', (state) => {
+      const time = readState(state); if (time !== null) lastVkPosition = time;
+      vkPlaying = false; updatePlayerControls();
+      if (canBroadcast()) broadcastPlayback('vk', 'ended', lastVkPosition);
+    });
+    on('timeupdate', (state) => {
+      const next = readState(state); if (next === null) return;
+      const previous = lastVkPosition; lastVkPosition = next;
+      if (vkAdPlaying) return;
+      if (previous > 0 && Math.abs(next - previous) > 3 && Date.now() > suppressPlaybackBroadcastUntil) broadcastPlayback('vk', 'seek', next);
+      if (vkPlaying && Date.now() - lastVkSyncAt > 5000 && isSyncLeader()) { lastVkSyncAt = Date.now(); broadcastPlayback('vk', 'sync', lastVkPosition); }
+    });
+    on('volumechange', (state) => { readState(state); updatePlayerControls(); });
+    on('adStarted', () => { vkAdPlaying = true; });
+    on('adCompleted', () => { vkAdPlaying = false; });
+    on('error', () => {
+      $('#syncLabel').textContent = 'Видео недоступно';
+      showToast('VK Видео: не удалось воспроизвести это видео');
+    });
   }
 
   function formatPlayerTime(seconds) {
@@ -1190,7 +1286,7 @@
 
   function getCurrentPlayerTime() {
     if (currentVideo?.provider === 'youtube') return Number(youtubePlayer?.getCurrentTime?.()) || 0;
-    if (currentVideo?.provider === 'rutube') return Number(lastRutubePosition) || 0;
+    if (currentVideo?.provider === 'vk') return Number(lastVkPosition) || 0;
     return 0;
   }
 
@@ -1204,14 +1300,14 @@
     const bar = $('#playerControls');
     if (!bar || !currentVideo) { bar?.classList.add('hidden'); return; }
     bar.classList.remove('hidden');
-    let current = getCurrentPlayerTime(); let duration = rutubeDuration; let playing = false; let muted = false;
+    let current = getCurrentPlayerTime(); let duration = vkDuration; let playing = false; let muted = false;
     if (currentVideo.provider === 'youtube' && youtubePlayer?.getDuration) {
       duration = Number(youtubePlayer.getDuration()) || 0;
       const state = youtubePlayer.getPlayerState?.();
       playing = state === window.YT?.PlayerState?.PLAYING;
       muted = Boolean(youtubePlayer.isMuted?.());
     }
-    if (currentVideo.provider === 'rutube') { playing = rutubePlaying; muted = rutubeMuted; }
+    if (currentVideo.provider === 'vk') { playing = vkPlaying; muted = vkMuted; }
     const seek = $('#playerSeek');
     const hasPreview = playerSeekPreview !== null && Number.isFinite(playerSeekPreview);
     const progress = hasPreview ? playerSeekPreview : (duration ? Math.min(1, current / duration) : 0);
@@ -1236,8 +1332,8 @@
     if (currentVideo.provider === 'youtube' && youtubePlayer) {
       const playing = youtubePlayer.getPlayerState?.() === window.YT?.PlayerState?.PLAYING;
       if (playing) youtubePlayer.pauseVideo(); else youtubePlayer.playVideo();
-    } else if (currentVideo.provider === 'rutube' && rutubeReady) {
-      sendRutubeCommand(rutubePlaying ? 'player:pause' : 'player:play');
+    } else if (currentVideo.provider === 'vk' && vkReady) {
+      vkCommand(vkPlaying ? 'pause' : 'play');
     }
   }
 
@@ -1246,16 +1342,16 @@
     if (currentVideo?.provider === 'youtube' && youtubePlayer) {
       const duration = Number(youtubePlayer.getDuration?.()) || 0;
       if (duration) { const time = duration * position; youtubePlayer.seekTo(time, true); broadcastPlayback('youtube', 'seek', time); }
-    } else if (currentVideo?.provider === 'rutube' && rutubeReady && rutubeDuration) {
-      const time = rutubeDuration * position; sendRutubeCommand('player:setCurrentTime', { time }); broadcastPlayback('rutube', 'seek', time);
+    } else if (currentVideo?.provider === 'vk' && vkReady && vkDuration) {
+      const time = vkDuration * position; lastVkPosition = time; vkCommand('seek', time); broadcastPlayback('vk', 'seek', time);
     }
   }
 
   function togglePlayerMute() {
     if (currentVideo?.provider === 'youtube' && youtubePlayer) {
       if (youtubePlayer.isMuted?.()) youtubePlayer.unMute(); else youtubePlayer.mute();
-    } else if (currentVideo?.provider === 'rutube' && rutubeReady) {
-      rutubeMuted = !rutubeMuted; sendRutubeCommand(rutubeMuted ? 'player:mute' : 'player:unMute');
+    } else if (currentVideo?.provider === 'vk' && vkReady) {
+      vkMuted = !vkMuted; vkCommand(vkMuted ? 'mute' : 'unmute');
     }
     updatePlayerControls();
   }
@@ -1277,10 +1373,11 @@
       if (Number.isFinite(time) && Math.abs(local - time) > 2.5) youtubePlayer.seekTo(time, true);
       if (payload.state === 'playing' || payload.state === 'sync' || payload.state === 'seek') youtubePlayer.playVideo();
       else if (payload.state === 'paused' || payload.state === 'ended') youtubePlayer.pauseVideo();
-    } else if (payload.provider === 'rutube') {
-      if (payload.state === 'playing') sendRutubeCommand('player:play');
-      else if (payload.state === 'paused' || payload.state === 'ended') sendRutubeCommand('player:pause');
-      if (['sync', 'seek'].includes(payload.state)) sendRutubeCommand('player:setCurrentTime', { time });
+    } else if (payload.provider === 'vk' && vkReady) {
+      const drift = Math.abs((Number(lastVkPosition) || 0) - time);
+      if (payload.state === 'seek' || drift > 2.5) vkCommand('seek', time);
+      if (payload.state === 'playing' || payload.state === 'sync') vkCommand('play');
+      else if (payload.state === 'paused' || payload.state === 'ended') vkCommand('pause');
     }
   }
 
@@ -1289,8 +1386,8 @@
     if (currentVideo.provider === 'youtube' && youtubePlayer?.getPlayerState) {
       const state = youtubePlayer.getPlayerState();
       if (state === window.YT?.PlayerState?.PLAYING) broadcastPlayback('youtube', 'sync', youtubePlayer.getCurrentTime?.() || 0);
-    } else if (currentVideo.provider === 'rutube' && rutubeReady) {
-      broadcastPlayback('rutube', 'sync', lastRutubePosition);
+    } else if (currentVideo.provider === 'vk' && vkReady && vkPlaying && !vkAdPlaying) {
+      broadcastPlayback('vk', 'sync', lastVkPosition);
     }
   }
 
@@ -1298,7 +1395,7 @@
     markPlaybackStarted();
     suppressPlaybackBroadcastUntil = Date.now() + 1000;
     if (currentVideo?.provider === 'youtube') youtubePlayer?.playVideo?.();
-    else if (currentVideo?.provider === 'rutube') { sendRutubeCommand('player:unMute'); sendRutubeCommand('player:play'); }
+    else if (currentVideo?.provider === 'vk') { vkCommand('unmute'); vkCommand('play'); }
   }
 
   async function copyText(text) {
@@ -1380,7 +1477,7 @@
     $('#addVideoButton').addEventListener('click', () => {
       $('#providerSearchInput').value = '';
       $('#searchResults').replaceChildren();
-      $('#providerMessage').textContent = currentRoom ? 'Введи название фильма, сериала или видео.' : 'Сначала подключись к комнате, чтобы выбрать видео для общего просмотра.';
+      $('#providerMessage').textContent = currentRoom ? 'Введи название фильма, сериала или видео — или вставь ссылку на видео VK.' : 'Сначала подключись к комнате, чтобы выбрать видео для общего просмотра.';
       $('#providerSearchButton').disabled = false;
       openModal('videoSearchModal');
     });
@@ -1406,7 +1503,6 @@
     $('#voiceToggle').addEventListener('click', () => voiceEnabled ? toggleVoiceMute() : toggleVoice());
     $('#voiceLeave').addEventListener('click', toggleVoice);
     $('#startPlayback').addEventListener('click', enablePlaybackFromGesture);
-    window.addEventListener('message', handleRutubeMessage);
     window.addEventListener('pagehide', stopVoiceLocally);
     $('#inviteTop').addEventListener('click', () => shareRoom());
     $('#invitePeople').addEventListener('click', () => shareRoom());

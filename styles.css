@@ -514,7 +514,6 @@ a:focus-visible{color:var(--lamp)}
 .result-card:hover{transform:translateY(-2px);border-color:#5A5141}
 .result-copy{gap:6px}
 .result-source{width:max-content;padding:4px 8px;border-radius:6px;background:#302C24;color:#D8C5A5!important;font-size:10px!important;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.result-source.source-rutube{background:#292D28;color:#B8C4AE!important}
 .result-author{margin-bottom:5px!important}
 .search-warning{grid-column:1/-1;color:#B9A989;font-size:12px;line-height:1.5}
 .result-thumb.thumb-unavailable{background:linear-gradient(135deg,#302D27,#181714)}
